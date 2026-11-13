@@ -1,0 +1,122 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="theme-color" content="#f3eff6">
+  <title>Expediente · FiscalOps</title>
+  <link rel="stylesheet" href="/static/style.css?v=wordcraft-1">
+  <link rel="stylesheet" href="/static/audit.css?v=8.0.1&amp;ui=ocr-zones-1">
+  <link rel="stylesheet" href="/static/premium.css?v=2"><link rel="stylesheet" href="/static/neon.css?v=1">
+</head>
+<body class="audit-body">
+  <header class="topbar" inert>
+    <a href="/" class="studio-brand" aria-label="Salles Sainz Grant Thornton, powered by FiscalOps · Inicio">
+      <img class="studio-logo" src="/static/ssgt-logo.png" alt="Salles Sainz Grant Thornton" width="1701" height="598"><span class="powered-signature" aria-label="Powered by FiscalOps"><span class="ssgt-symbol ssgt-rotor" aria-hidden="true"><img src="/static/ssgt-symbol.png" alt="" draggable="false"></span><span><small>POWERED BY</small><strong>Fiscal<span>Ops</span></strong></span></span>
+    </a>
+    <div class="top-actions">
+      <span id="saveState" data-state="saved" role="status">Guardado localmente</span>
+      <button id="saveBtn" data-icon="save" title="Guardar expediente (Ctrl+S)">Guardar</button>
+      <button id="wordBtn" class="primary" data-icon="download">Exportar Word</button>
+      <details class="workspace-menu"><summary data-icon="more" aria-label="Más acciones"></summary><div><button id="newPdfBtn" data-icon="plus">Nuevo expediente</button><button id="managedBackupBtn" data-icon="shield">Guardar resguardo local</button><button id="backupsHomeBtn" data-icon="folder">Consultar resguardos</button><button id="backupBtn" data-icon="download">Descargar respaldo ZIP</button><button id="jsonBtn" data-icon="download">Descargar JSON</button><button id="shutdownBtn">Apagar servidor</button></div></details>
+    </div>
+  </header>
+  <section class="case-bar" aria-label="Resumen del expediente" inert>
+    <div class="case-name"><span id="caseCompanyIdentity" class="case-company-avatar" hidden></span><div class="case-heading"><span class="eyebrow">EXPEDIENTE / REVISIÓN DOCUMENTAL</span><h1 id="caseTitle">Expediente fiscal</h1><small id="caseDetail"></small></div></div>
+    <div class="metrics" id="caseMetrics"><div><b id="complete">0%</b><span>Completitud</span></div><div><b id="confidence">0%</b><span>Confianza</span></div><div><b id="assetCount">0</b><span>Visuales</span></div><div><b id="docType">PDF</b><span>Tipo de PDF</span></div></div>
+    <div class="case-actions"><button id="previewBtn" class="soft-button" data-icon="word">Abrir Estudio Word</button></div>
+  </section>
+  <nav class="mobile-pane-switch" aria-label="Vista del expediente"><button data-mobile-pane="editor" aria-pressed="true">Expediente</button><button data-mobile-pane="pdf" aria-pressed="false">PDF original</button><button id="metricsToggle" aria-controls="caseMetrics" aria-expanded="false">Resumen</button><output id="mobileSaveState" class="mobile-save-state" aria-live="polite">Guardado</output></nav>
+  <main id="split" data-mobile-pane="editor" aria-busy="true" inert>
+    <section id="pdfPane" class="pane" aria-label="Documento original">
+      <div class="pane-head"><div class="pane-title"><span data-icon="document"></span><b>PDF original</b></div><div class="pane-controls">
+        <button id="prev" data-icon="arrow-left" aria-label="Página anterior" title="Página anterior"></button><span id="pageLabel">1 / 1</span><button id="next" data-icon="arrow-right" aria-label="Página siguiente" title="Página siguiente"></button>
+        <span class="toolbar-divider"></span><button id="zoomOut" data-icon="minus" aria-label="Reducir zoom" title="Reducir zoom"></button><button id="zoomLabel" title="Ajustar a ancho">100%</button><button id="zoomIn" data-icon="plus" aria-label="Ampliar zoom" title="Ampliar zoom"></button><button id="maxPdf" data-icon="expand" aria-label="Enfocar PDF" aria-pressed="false" title="Enfocar PDF"></button>
+      </div></div>
+      <div class="ocr-bar">
+        <button id="ocrToggle" data-icon="scan" class="soft-button" type="button" aria-pressed="false">OCR por zonas</button>
+        <span id="ocrHint" role="status">Relee una zona del PDF.</span>
+        <div id="ocrControls" class="hidden">
+          <select id="ocrMode" aria-label="Método de lectura"><option value="auto">Lectura automática</option><option value="paddle">Forzar OCR</option></select>
+          <select id="ocrRotation" class="hidden" aria-label="Girar imagen para OCR"><option value="0">Sin giro</option><option value="90">Girar 90°</option><option value="180">Girar 180°</option><option value="270">Girar 270°</option></select>
+          <button id="ocrWholePage" type="button">Página completa</button>
+          <button id="ocrRemove" type="button" aria-label="Quitar última zona">Quitar última</button>
+          <button id="ocrRead" data-icon="scan" class="primary" type="button">Leer zonas</button>
+        </div>
+      </div>
+      <span id="pageLoading" class="page-loading hidden" role="status">Cargando página…</span>
+      <div id="pdfScroll"><div id="pageStage"><img id="pageImage" alt=""><div id="overlay"></div><div id="ocrSelectionLayer" aria-hidden="true"></div></div></div>
+    </section>
+    <div id="gutter" role="separator" tabindex="0" aria-label="Ajustar ancho del PDF" aria-orientation="vertical" aria-valuemin="28" aria-valuemax="61" aria-valuenow="40"></div>
+    <section id="editorPane" class="pane" aria-label="Expediente editable">
+      <div class="pane-head"><div class="pane-title"><span data-icon="word"></span><b>Expediente editable</b></div><div class="pane-controls"><button id="undo" data-icon="undo" aria-label="Deshacer cambio de expediente" title="Deshacer cambio de expediente"></button><button id="redo" data-icon="redo" aria-label="Rehacer cambio de expediente" title="Rehacer cambio de expediente"></button><button id="maxEditor" data-icon="expand" aria-label="Enfocar expediente" aria-pressed="false" title="Enfocar expediente"></button></div></div>
+      <nav class="editor-tabs" aria-label="Módulos del expediente" role="tablist">
+        <button data-tab="requirements" data-icon="list" class="active" role="tab" aria-selected="true" aria-controls="requirementsTab">Numerales</button>
+        <button data-tab="preview" data-icon="word" role="tab" tabindex="-1" aria-selected="false" aria-controls="previewTab">Estudio Word</button>
+        <button data-tab="visuals" data-icon="visuals" role="tab" tabindex="-1" aria-selected="false" aria-controls="visualsTab">Tablas e imágenes</button>
+        <button data-tab="metadata" data-icon="data" role="tab" tabindex="-1" aria-selected="false" aria-controls="metadataTab">Datos</button>
+        <button data-tab="templates" data-icon="template" role="tab" tabindex="-1" aria-selected="false" aria-controls="templatesTab">Plantillas Word</button>
+      </nav>
+      <div id="editorScroll">
+        <div id="requirementsTab" class="tab" role="tabpanel"></div><div id="previewTab" class="tab hidden" role="tabpanel"></div>
+        <div id="visualsTab" class="tab hidden" role="tabpanel"></div><div id="metadataTab" class="tab hidden" role="tabpanel"></div>
+        <div id="templatesTab" class="tab hidden template-library" role="tabpanel"></div>
+      </div>
+    </section>
+  </main>
+  <div id="toast" role="status"></div>
+  <section id="revisionConflict" class="revision-notice hidden" role="alert">
+    <strong>Otra pestaña guardó una versión más reciente.</strong>
+    <span>Los cambios de esta pestaña siguen aquí. Puedes descargar una copia antes de abrir la última versión.</span>
+    <button id="conflictCopy">Descargar mis cambios</button><button id="conflictReload">Abrir última versión</button>
+  </section>
+  <dialog id="exportDialog" class="review-dialog" aria-labelledby="exportTitle">
+    <form method="dialog"><button class="review-close" data-icon="close" aria-label="Cerrar"></button></form>
+    <div class="review-heading"><span class="card-icon" data-icon="word"></span><div><span class="eyebrow">SALIDA DEL EXPEDIENTE</span><h2 id="exportTitle">Exportar Word</h2></div></div>
+    <label>Plantilla <select id="exportTemplate"><option value="">Formato estándar</option></select></label>
+    <p id="exportSummary" role="status"></p>
+    <div class="review-actions"><button id="manageTemplates" data-icon="template">Administrar plantillas</button><button id="downloadWord" data-icon="download" class="primary">Descargar Word</button></div>
+  </dialog>
+  <dialog id="compareDialog" class="review-dialog compare-dialog" aria-labelledby="compareTitle">
+    <form method="dialog"><button class="review-close" data-icon="close" aria-label="Cerrar"></button></form>
+    <h2 id="compareTitle">Comparar texto</h2><p id="compareState"></p>
+    <div class="compare-grid"><section><h3>Texto original</h3><pre id="compareOriginal"></pre></section><section><h3>Texto editado</h3><pre id="compareEdited"></pre></section></div>
+  </dialog>
+  <dialog id="ocrDialog" class="review-dialog ocr-dialog" aria-labelledby="ocrTitle">
+    <form method="dialog"><button id="ocrClose" class="review-close" data-icon="close" aria-label="Cerrar"></button></form>
+    <div class="review-heading"><span class="card-icon" data-icon="scan"></span><div><span class="eyebrow">LECTURA LOCAL · PDF</span><h2 id="ocrTitle">Revisar lectura por zonas</h2></div></div>
+    <p id="ocrStatus" role="status"></p>
+    <div id="ocrProgress" class="startup-track" aria-hidden="true"></div>
+    <div id="ocrReview" class="hidden">
+      <ul id="ocrSources" class="ocr-sources"></ul>
+      <details id="ocrSourcePreview" class="ocr-source-preview">
+        <summary>Ver recorte original</summary>
+        <label for="ocrSourceZone">Zona seleccionada<select id="ocrSourceZone"></select></label>
+        <svg id="ocrCrop" role="img" aria-label="Recorte de la zona seleccionada del PDF"></svg>
+      </details>
+      <div class="ocr-review-grid">
+        <label for="ocrRecognized">Texto leído<textarea id="ocrRecognized" maxlength="100000" spellcheck="false"></textarea></label>
+        <div>
+          <label for="ocrTarget">Destino<select id="ocrTarget"></select></label>
+          <label for="ocrFinal">Texto final del numeral<textarea id="ocrFinal" maxlength="100000" spellcheck="false"></textarea></label>
+        </div>
+      </div>
+      <div class="ocr-transfer"><button id="ocrInsert" type="button">Insertar en la selección del texto final</button><button id="ocrReplace" type="button">Usar como texto completo</button></div>
+      <p class="ocr-review-note">Para corregir solo una parte, selecciona ese fragmento en el texto final y usa «Insertar en la selección».</p>
+      <div class="review-actions"><button id="ocrApply" class="primary" data-icon="save" type="button">Aplicar al numeral</button></div>
+    </div>
+  </dialog>
+  <div id="loadingOverlay" role="status"><div class="startup-card"><div class="engine-loader" aria-hidden="true"><span class="engine-orbit"></span><span class="ssgt-symbol ssgt-rotor" aria-hidden="true"><img src="/static/ssgt-symbol.png" alt="" draggable="false"></span></div>
+    <div class="brand-plate"><img src="/static/ssgt-logo.png" alt="Salles Sainz Grant Thornton" width="1701" height="598" fetchpriority="high"></div>
+    <span class="eyebrow">FISCALOPS / ESCRITORIO LOCAL</span><b id="loadingMessage">Abriendo el expediente</b><div class="startup-track" aria-hidden="true"></div>
+  </div></div>
+  <div id="fatalError" class="fatal hidden"><h2>No se pudo abrir el expediente</h2><pre id="fatalText"></pre><a href="/">Volver al inicio</a></div>
+  <script src="/static/desktop.js?v=2"></script><script src="/static/fiscal-motion.js?v=1"></script><script src="/static/company-identity.js?v=1"></script>
+  <script src="/static/vendor/docx-preview/jszip.min.js"></script>
+  <script src="/static/vendor/docx-preview/docx-preview.min.js"></script>
+  <script src="/static/wordcraft.js?v=premium-2"></script>
+  <script src="/static/template-editor.js?v=wordcraft-1"></script>
+  <script src="/static/templates.js?v=wordcraft-1"></script>
+  <script src="/static/word-editor.js?v=wordcraft-1"></script>
+  <script src="/static/manual-ocr.js?v=3"></script>
+  <script src="/static/audit.js?v=8.0.1&amp;ui=ocr-zones-1"></script>
+</body></html>

@@ -1,0 +1,18 @@
+{
+  "docx-preview.min.js": {
+    "url": "https://cdn.jsdelivr.net/npm/docx-preview@0.3.7/dist/docx-preview.min.js",
+    "sha256": "a011a499016a269eb048b8558a3eefc94bc33568ef434235943948ff24a40005"
+  },
+  "jszip.min.js": {
+    "url": "https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js",
+    "sha256": "acc7e41455a80765b5fd9c7ee1b8078a6d160bbbca455aeae854de65c947d59e"
+  },
+  "LICENSE-docx-preview": {
+    "url": "https://cdn.jsdelivr.net/npm/docx-preview@0.3.7/LICENSE",
+    "sha256": "8668bf4417d161e4eb4d47d6044526e4914d9eb3c748573d9bb7e87708c1253f"
+  },
+  "LICENSE-jszip": {
+    "url": "https://cdn.jsdelivr.net/npm/jszip@3.10.1/LICENSE.markdown",
+    "sha256": "566c953c6090b1218ca6217dd7359d45dde46581968586dc607d59a78af6a9c4"
+  }
+}

@@ -1,0 +1,26 @@
+# Python y dependencias locales
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.venv/
+.venv-ocr/
+venv/
+/runtime/
+/dist/
+/FiscalOps.exe
+/.build-checks/
+
+# Datos de operación y modelos descargados
+/work/
+/data/
+/corrections_store/
+/models/
+*.log
+*.log.[0-9]*
+
+# Material de referencia y validación local
+/.codex-remote-attachments/
+/EJEMPLOS REQUERIMIENTOS/
+/tests/ocr_dataset/local/
+/tests/ocr_dataset/manifest*.jsonl
+/ocr_benchmark_report.json
