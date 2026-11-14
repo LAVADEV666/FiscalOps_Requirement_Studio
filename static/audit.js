@@ -40,7 +40,7 @@ async function init(){
     }catch(error){fatal(error)}
     finally{finishWorkspaceMotion()}
 }
-function normalize(){data.workspace_revision=data.workspace_revision||0;data.points=data.points||[];data.fragments=data.fragments||[];data.assets=data.assets||[];data.audit_log=data.audit_log||[];data.validation=data.validation||{alerts:[],metrics:{},completeness:0};data.metadata_validation=data.metadata_validation||{fields:{}};data.compliance_matrix=data.compliance_matrix||{schema_version:'fiscalops.compliance.v1',rows:[],metrics:{}};data.document=data.document||{schema_version:'fiscalops.document.v1',revision:1,sections:[]};data.document_inspection=data.document_inspection||{pages:[],classification_counts:{}};data.ocr_decisions=data.ocr_decisions||{pages:[],summary:{}};data.reconstruction=data.reconstruction||{pages:[],text:''};data.cross_validation=data.cross_validation||{metrics:{},discrepancies:[],critical_fields:{}};data.fiscal_interpretation=data.fiscal_interpretation||{};for(const p of data.points){p.requirement_id=p.requirement_id||`REQ-${String(p.number).padStart(3,'0')}`;p.fragment_ids=p.fragment_ids||[];p.asset_ids=p.asset_ids||[];p.original_text=p.original_text||p.text;p.version=p.version||1;p.status=p.status||'detected'}}
+function normalize(){data.workspace_revision=data.workspace_revision||0;data.points=data.points||[];data.fragments=data.fragments||[];data.assets=data.assets||[];data.audit_log=data.audit_log||[];data.validation=data.validation||{alerts:[],metrics:{},completeness:0};data.metadata_validation=data.metadata_validation||{fields:{}};data.compliance_matrix=data.compliance_matrix||{schema_version:'fiscalops.compliance.v1',rows:[],metrics:{}};data.document=data.document||{schema_version:'fiscalops.document.v1',revision:1,sections:[]};data.document_inspection=data.document_inspection||{pages:[],classification_counts:{}};data.ocr_decisions=data.ocr_decisions||{pages:[],summary:{}};data.reconstruction=data.reconstruction||{pages:[],text:''};data.cross_validation=data.cross_validation||{metrics:{},discrepancies:[],critical_fields:{}};data.fiscal_interpretation=data.fiscal_interpretation||{};data.processing_metrics=data.processing_metrics||{};for(const p of data.points){p.requirement_id=p.requirement_id||`REQ-${String(p.number).padStart(3,'0')}`;p.fragment_ids=p.fragment_ids||[];p.asset_ids=p.asset_ids||[];p.original_text=p.original_text||p.text;p.version=p.version||1;p.status=p.status||'detected'}}
 
 function syncPaneControls() {
     const split = $('#split');
@@ -142,7 +142,7 @@ function renderAll() {
     $('#caseTitle').textContent=metadata.taxpayer_name?.valid?metadata.taxpayer_name.value:'Expediente fiscal';
     window.CompanyIdentity.mount($('#caseCompanyIdentity'),expedientRfc(),{registeredOnly:true});
     $('#caseDetail').textContent=`${data.pages} ${data.pages===1?'página':'páginas'} · ${data.points.length} ${data.points.length===1?'numeral':'numerales'}`;
-    renderRequirements();renderVisuals();renderHybrid();renderHybridComparison();
+    renderRequirements();renderVisuals();renderHybrid();renderHybridComparison();renderHybridRuntime();
     if(!$('#previewTab').classList.contains('hidden'))renderPreview();
     renderMetadata();
 }
@@ -165,7 +165,7 @@ function activateTab(name) {
     document.querySelectorAll('.tab').forEach(t=>t.classList.toggle('hidden',t!==target));
     if(name==='preview')renderPreview();
     if(name==='requirements')renderRequirements();
-    if(name==='hybrid'){renderHybrid();renderHybridComparison();}
+    if(name==='hybrid'){renderHybrid();renderHybridComparison();renderHybridRuntime();}
     if(name==='templates')setupTemplateLibrary(target,expedientRfc());
     $('#editorScroll').scrollTop=0;
 }
@@ -250,6 +250,14 @@ function renderHybridComparison(){
         details.innerHTML=`<summary>Comparar texto nativo y OCR</summary><div class="hybrid-compare-grid"><section><h4>Texto nativo</h4><pre>${esc(nativeText||'No disponible')}</pre></section><section><h4>OCR / reconstrucción suplementaria</h4><pre>${esc(ocrText||'No se ejecutó OCR en esta página')}</pre></section></div>`;
         row.appendChild(details);
     });
+}
+
+function renderHybridRuntime(){
+    const target=$('#hybridTab');if(!target)return;
+    const metrics=data.processing_metrics||{};
+    let note=target.querySelector('.hybrid-runtime-note');
+    if(!note){note=document.createElement('div');note.className='hybrid-runtime-note';target.querySelector('.hybrid-report')?.appendChild(note)}
+    if(note)note.textContent=metrics.duration_ms?`Tiempo de procesamiento: ${(Number(metrics.duration_ms)/1000).toFixed(2)} s · ${metrics.pages_inspected||0} páginas inspeccionadas`:'Tiempo de procesamiento no disponible en esta sesión.';
 }
 
 function renderMetadata() {

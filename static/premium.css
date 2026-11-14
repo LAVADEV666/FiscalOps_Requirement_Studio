@@ -111,6 +111,7 @@ h1,h2,h3,p { overflow-wrap:anywhere }
 .hybrid-report-grid b { color:var(--brand-deep); font-size:1.05rem }
 .hybrid-report-grid span,.hybrid-report-note { color:var(--muted); font-size:.78rem }
 .hybrid-report-note { padding:9px 11px; background:#faf6fd; border-left:3px solid var(--brand); border-radius:5px }
+.hybrid-runtime-note { color:var(--muted); font-size:.78rem; padding:2px 0; }
 .hybrid-page-list { display:grid; gap:6px }
 .hybrid-page-row { display:grid; grid-template-columns:70px minmax(120px,1fr) minmax(140px,1fr) 90px minmax(130px,1fr); align-items:center; gap:8px; padding:9px 10px; border:1px solid var(--line); border-radius:8px; background:#fff; font-size:.78rem }
 .hybrid-page-row span,.hybrid-page-row small { color:var(--muted) }

@@ -5,7 +5,7 @@
 - Baseline regression before integration: **108 passed, 1 skipped**.
 - New hybrid unit tests plus pipeline/triage coverage: **12 passed**.
 - Mixed-region OCR, benchmark runner and cancellation tests: **12 passed**.
-- Full regression after integration: **115 passed, 1 skipped in 12.68s**.
+- Full regression after integration: **115 passed, 1 skipped in 12.60s**.
 - Verified native benchmark pilot: **1 case measured, CER 0, WER 0**. PaddleOCR
   was correctly reported as `NOT_RUN` because the case required native text only.
 - Real local scanned pilot (synthetic verified reference): **1 case measured**,

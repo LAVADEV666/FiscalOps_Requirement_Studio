@@ -13,6 +13,7 @@ from __future__ import annotations
 import json
 import logging
 import shutil
+import time
 import uuid
 from pathlib import Path
 from typing import Any
@@ -268,6 +269,7 @@ class ProcessingPipeline:
             Dict con session_id, job_id, puntos detectados, páginas, tipo_doc.
         """
         tick = progress or (lambda stage, pct, msg="": None)
+        started = time.perf_counter()
         sid = uuid.uuid4().hex
         d = self.work / sid
         d.mkdir(mode=0o700)
@@ -382,6 +384,12 @@ class ProcessingPipeline:
             cross_validation = validate_cross_sources(reconstruction, data)
             data["cross_validation"] = cross_validation
             data["fiscal_interpretation"] = interpret_document(data, reconstruction, cross_validation)
+            data["processing_metrics"] = {
+                "duration_ms": round((time.perf_counter() - started) * 1000, 2),
+                "pages": inspection["total_pages"],
+                "pages_inspected": inspection["inspected_pages"],
+                "completed": True,
+            }
 
             # ── Paso 8: Renderizado de páginas (imágenes) ─────────────────
             tick("rendering", 80, "Renderizando páginas")
@@ -418,6 +426,7 @@ class ProcessingPipeline:
                     "coverage": inspection["coverage"],
                 },
                 "ocr_decisions": decisions["summary"],
+                "processing_metrics": data["processing_metrics"],
             }
 
         except Exception:
