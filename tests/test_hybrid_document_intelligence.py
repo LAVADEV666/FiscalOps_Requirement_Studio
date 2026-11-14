@@ -48,6 +48,7 @@ def test_quality_metrics_are_not_claimed_without_reference():
     assert result["fidelity_claim"] == "NOT_DECLARED_WITHOUT_REFERENCE"
     assert result["critical_fields"]["rfc"]["page"] == 1
     assert cer("hola mundo", "hola mundo") == 0
+    assert cer("abc XYZ", "abc") == 0.571429
     assert wer("hola mundo", "hola mundo") == 0
 
 
