@@ -44,6 +44,27 @@ WordCraft necesita WebGL2 o WebGPU en el navegador. La distribución web, sus fu
 
 Consulta [la guía portable](README_PORTABLE.md) para preparar otra computadora y [la arquitectura OCR](docs/OCR_ARCHITECTURE.md) para el funcionamiento y la validación del motor.
 
+### Inteligencia documental híbrida local
+
+El pipeline inspecciona el 100% de las páginas, clasifica cada una, conserva
+la extracción nativa y utiliza el PaddleOCR incluido solo en páginas escaneadas
+o regiones visuales mixtas. La reconstrucción, validación cruzada y
+interpretación quedan guardadas en el expediente con trazabilidad por página.
+
+Ollama es opcional y permanece desactivado por defecto. Para activarlo en una
+sesión local:
+
+```powershell
+$env:FISCALOPS_OLLAMA_ENABLED="1"
+$env:FISCALOPS_OLLAMA_MODEL="qwen2.5:3b"
+$env:FISCALOPS_OLLAMA_URL="http://localhost:11434"
+```
+
+Modelos soportados inicialmente: `qwen2.5:3b`, `qwen2.5:1.5b` y
+`llama3.2:3b`. Comprueba instalación, latencia y disponibilidad en **Ajustes**
+o mediante `/api/ollama/status`. Si Ollama está apagado o el modelo no está
+instalado, el flujo determinista y PaddleOCR continúan funcionando.
+
 ## Datos locales
 
 Una instalación nueva guarda sus datos en `%LOCALAPPDATA%\SSGT\FiscalOps`. Las instalaciones anteriores pueden seguir usando `work`, `data` y `corrections_store` junto al programa. La variable `FISCALOPS_DATA_DIR` tiene prioridad sobre esas rutas. Consulta **Diagnóstico y mantenimiento** para confirmar la ubicación activa.
