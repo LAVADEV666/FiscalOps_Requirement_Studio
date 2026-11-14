@@ -13,6 +13,8 @@ from pathlib import Path
 
 import fitz
 
+from config import ocr_dpi_for_page
+
 from ocr_engine import OCREngine
 
 
@@ -43,7 +45,9 @@ def main() -> int:
             pdf_path = (base / row["pdf"]).resolve()
             with fitz.open(pdf_path) as doc:
                 page_index = int(row.get("page", 1)) - 1
-                pix = doc[page_index].get_pixmap(matrix=fitz.Matrix(300 / 72, 300 / 72), alpha=False)
+                page = doc[page_index]
+                dpi = ocr_dpi_for_page(page.rect.width, page.rect.height)
+                pix = page.get_pixmap(matrix=fitz.Matrix(dpi / 72, dpi / 72), alpha=False)
                 image = Path(temp) / f"case-{index}.png"
                 pix.save(image)
             start = time.perf_counter(); result = engine.run(image, force=True); elapsed = time.perf_counter() - start

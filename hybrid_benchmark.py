@@ -21,6 +21,7 @@ from ocr_decision_engine import decide_document
 from ocr_engine import OCREngine
 from ollama_provider import OllamaClient
 from mixed_region_ocr import run_mixed_region_ocr
+from config import ocr_dpi_for_page
 
 
 def _validate(rows: list[dict[str, Any]]) -> list[str]:
@@ -103,7 +104,8 @@ def run_benchmark(manifest: str | Path, output: str | Path, *, pilot: bool = Fal
                             ocr_mode = "mixed_regions"
                         else:
                             image = temporary / f"case-{case_number}.png"
-                            pixmap = page.get_pixmap(matrix=fitz.Matrix(300 / 72, 300 / 72), alpha=False)
+                            dpi = ocr_dpi_for_page(page.rect.width, page.rect.height)
+                            pixmap = page.get_pixmap(matrix=fitz.Matrix(dpi / 72, dpi / 72), alpha=False)
                             pixmap.save(str(image))
                             ocr_text = str(engine.run(image, force=True).get("text", ""))
                             ocr_mode = "full_page"

@@ -8,6 +8,7 @@ from typing import Any
 import fitz
 
 from ocr_engine import OCREngine
+from config import OCR_RENDER_DPI, ocr_dpi_for_page
 
 
 MIXED_OCR_VERSION = "fiscalops.mixed-region-ocr.v1"
@@ -20,7 +21,7 @@ def run_mixed_region_ocr(
     ocr_service: OCREngine,
     *,
     enabled: bool = True,
-    dpi: int = 220,
+    dpi: int = OCR_RENDER_DPI,
     min_area_ratio: float = 0.02,
     max_regions_per_page: int = 8,
 ) -> dict[str, Any]:
@@ -67,7 +68,8 @@ def run_mixed_region_ocr(
                 region_id = str(region.get("region_id") or f"P{page_number:03d}-IMG{len(result['regions']) + 1:03d}")
                 image_path = target / f"page-{page_number:03d}-{region_id}.png"
                 try:
-                    pixmap = page.get_pixmap(matrix=fitz.Matrix(dpi / 72, dpi / 72), clip=rect, alpha=False)
+                    region_dpi = min(float(dpi), ocr_dpi_for_page(page.rect.width, page.rect.height))
+                    pixmap = page.get_pixmap(matrix=fitz.Matrix(region_dpi / 72, region_dpi / 72), clip=rect, alpha=False)
                     pixmap.save(str(image_path))
                     ocr_result = ocr_service.run(image_path, force=True)
                     item = {

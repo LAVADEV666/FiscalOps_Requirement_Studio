@@ -12,6 +12,7 @@ from typing import Any
 import pymupdf
 
 from ocr_engine import OCREngine
+from config import ocr_dpi_for_page
 
 CATEGORIES = ("digital", "scanned_good", "scanned_regular", "scanned_bad")
 REQUIRED_COUNTS = {name: 10 for name in CATEGORIES}
@@ -92,7 +93,8 @@ def run_benchmark(manifest: Path, output: Path, require_complete: bool = True) -
                     review = False
                     route = "pymupdf_native"
                 else:
-                    pixmap = page.get_pixmap(matrix=pymupdf.Matrix(300 / 72, 300 / 72), alpha=False)
+                    dpi = ocr_dpi_for_page(page.rect.width, page.rect.height)
+                    pixmap = page.get_pixmap(matrix=pymupdf.Matrix(dpi / 72, dpi / 72), alpha=False)
                     image = Path(temporary) / f"case-{case_number}.png"
                     pixmap.save(image)
                     result = engine.run(image, force=True)

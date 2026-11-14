@@ -6,12 +6,12 @@
 - New hybrid unit tests plus pipeline/triage coverage: **12 passed**.
 - Mixed-region OCR, benchmark runner, cancellation and traceability tests:
   **13 passed** in the focused hybrid run.
-- Full regression after integration: **120 passed, 1 skipped in 14.65s**.
+- Full regression after integration: **123 passed, 1 skipped in 16.49s**.
 - Verified native benchmark pilot: **1 case measured, CER 0, WER 0**. PaddleOCR
   was correctly reported as `NOT_RUN` because the case required native text only.
 - Real local scanned pilot (synthetic verified reference): **1 case measured**,
-  page coverage **100%**, CER **0.004082**, WER **0.064516**, latency **50.7328
-  s/page**, peak traced memory **301,311,305 bytes**. Route:
+  page coverage **100%**, CER **0.004082**, WER **0.032258**, latency **70.8151
+  s/page**, peak traced memory **408,416,859 bytes**. Route:
   `SCANNED_IMAGE → PADDLEOCR_FULL_PAGE`.
 - Ollama provider verification: **server available locally** at
   `http://localhost:11434`; `qwen2.5:1.5b` was downloaded and detected as an
@@ -30,17 +30,18 @@
 - Controlled synthetic corpus generated locally: **43 verified pages** (10
   digital, 10 scanned-good, 10 scanned-regular, 10 scanned-bad, one mixed and
   two multipage references). Real PaddleOCR execution covered all pages with
-  **100% page coverage**, CER **0.041618**, WER **0.165160**, **5.306 s/case**
-  and **301,311,305 bytes** peak traced memory. The mixed case used route
-  `NATIVE_PLUS_REGIONS`, mode `mixed_regions`, CER **0.229299**. Category CER
-  was digital **0.000000**, scanned-good **0.004082**, scanned-regular
-  **0.112097** and scanned-bad **0.028279**. The corrected 99% quality gates
+  **100% page coverage**, CER **0.019322**, WER **0.141035**, **5.7967 s/case**
+  and **408,501,465 bytes** peak traced memory. The mixed case used route
+  `NATIVE_PLUS_REGIONS`, mode `mixed_regions`, CER **0.000000** and WER
+  **0.000000**. Category CER was digital **0.000000**, scanned-good
+  **0.004082**, scanned-regular **0.036693** and scanned-bad **0.030738**. The corrected 99% quality gates
   returned `promotable=false` because CER and WER remain above 1%; no fidelity
   claim is made for this synthetic corpus.
-- OCR detection resolution comparison on the same scanned case: default
-  `2048` outperformed `2560` (CER `0.004082` vs `0.008163`; WER `0.064516`
-  vs `0.096774`). The default remains configurable through
-  `FISCALOPS_OCR_DET_LIMIT_SIDE_LEN` and is bounded to `1024..4096`.
+- OCR resolution comparison on the same scanned case: `400 DPI` improved WER
+  to `0.032258` versus `0.064516` at 2048-side detection with 300 DPI input.
+  The default is configurable through `FISCALOPS_OCR_RENDER_DPI`, bounded by a
+  page pixel budget, while `FISCALOPS_OCR_DET_LIMIT_SIDE_LEN` remains bounded
+  to `1024..4096`.
 - The legacy `/api/process` path and the asynchronous `/api/process-async`
   path now share `ProcessingPipeline`; the UI exposes local enable/disable and
   supported-model selection through `/api/ollama/config`.

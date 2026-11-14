@@ -70,6 +70,9 @@ modelo no está instalado, el flujo determinista y PaddleOCR continúan funciona
 En documentos escaneados, `FISCALOPS_OCR_DET_LIMIT_SIDE_LEN` controla el lado
 máximo de detección PaddleOCR (por defecto `2048`, acotado entre `1024` y
 `4096`). La imagen original nunca se modifica.
+`FISCALOPS_OCR_RENDER_DPI` controla la resolución de renderizado (por defecto
+`400`, acotada entre `200` y `450`) y `FISCALOPS_OCR_RENDER_MAX_PIXELS`
+limita la memoria por página.
 
 ## Datos locales
 

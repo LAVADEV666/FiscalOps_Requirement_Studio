@@ -1,5 +1,6 @@
 from pathlib import Path
 import os
+import math
 APP_NAME = "FiscalOps Requirement Studio"
 VERSION = "8.0.1"
 EDITION = "Stable"
@@ -36,3 +37,13 @@ OLLAMA_TIMEOUT = float(os.environ.get("FISCALOPS_OLLAMA_TIMEOUT", "120"))
 OLLAMA_RETRIES = max(0, int(os.environ.get("FISCALOPS_OLLAMA_RETRIES", "1")))
 OLLAMA_BLOCK_SIZE = max(1000, int(os.environ.get("FISCALOPS_OLLAMA_BLOCK_SIZE", "12000")))
 OLLAMA_OVERLAP = max(0, int(os.environ.get("FISCALOPS_OLLAMA_OVERLAP", "800")))
+# OCR render quality.  The pixel budget prevents oversized pages from
+# allocating unbounded images while keeping 400 DPI for standard letter/A4.
+OCR_RENDER_DPI = max(200, min(450, int(os.environ.get("FISCALOPS_OCR_RENDER_DPI", "400"))))
+OCR_RENDER_MAX_PIXELS = max(8_000_000, min(24_000_000, int(os.environ.get("FISCALOPS_OCR_RENDER_MAX_PIXELS", "16_000_000"))))
+
+
+def ocr_dpi_for_page(width: float, height: float) -> float:
+    """Choose the configured OCR DPI without exceeding the page pixel budget."""
+    area = max(1.0, float(width) * float(height))
+    return min(float(OCR_RENDER_DPI), 72.0 * math.sqrt(OCR_RENDER_MAX_PIXELS / area))

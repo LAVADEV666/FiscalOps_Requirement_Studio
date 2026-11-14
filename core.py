@@ -1,16 +1,16 @@
 from __future__ import annotations
 
 import logging
-import math
 import re
 from pathlib import Path
 from typing import Any
 
 import pdfplumber
-from text_normalizer import normalize_extracted_text
+from text_normalizer import FiscalOpsNormalizer, normalize_extracted_text
 from ocr_engine import OCREngine
 from paddle_ocr_engine.schema import empty_result
 from visual_assets import detect_native_tables
+from config import ocr_dpi_for_page
 
 LOGGER = logging.getLogger("fiscalops.extract")
 
@@ -59,7 +59,7 @@ def native(page) -> bool:
 def ocr(page, engine: OCREngine | None = None) -> dict[str, Any]:
     import tempfile
     with tempfile.TemporaryDirectory() as td:
-        dpi = min(300, 72 * math.sqrt(10_000_000 / max(1, page.width * page.height)))
+        dpi = ocr_dpi_for_page(page.width, page.height)
         image_path = Path(td) / "page.png"
         page.to_image(resolution=dpi).original.convert("RGB").save(image_path)
         service = engine or OCREngine(Path(td)/'cache')
@@ -71,21 +71,40 @@ def _one(text: str, pattern: str) -> str:
     return clean(match.group(1)) if match else ""
 
 
+def _ocr_rfc(text: str) -> str:
+    """Read an RFC even when OCR inserts spaces between character groups."""
+    for line in str(text or "").splitlines():
+        if not re.search(r"\bR\s*\.?\s*F\s*\.?\s*C\s*\.?\b|\bRFC\b", line, re.I):
+            continue
+        tail = re.sub(r"^.*?R\s*\.?\s*F\s*\.?\s*C\s*\.?\s*[:\-]?", "", line, flags=re.I)
+        compact = re.sub(r"[^A-Z0-9Ñ&]", "", tail.upper())
+        for length in (12, 13):
+            for start in range(max(1, len(compact) - length + 1)):
+                candidate = compact[start:start + length]
+                repaired, _, valid = FiscalOpsNormalizer.repair_rfc(candidate)
+                if valid:
+                    return repaired
+                if FiscalOpsNormalizer.RFC_PATTERN.fullmatch(candidate):
+                    return candidate
+    return ""
+
+
 def _field(name: str, value: str, confidence: float, source: str, message: str = "") -> dict[str, Any]:
     return {"name": name, "value": value or "[REVISAR MANUALMENTE]", "confidence": confidence if value else .25, "valid": bool(value), "source": source, "message": message or "Editable y sujeto a revisión."}
 
 
 def metadata(text: str) -> dict[str, Any]:
+    detected_rfc = _ocr_rfc(text)
     values = {
-        "rfc": _field("RFC", _one(text, r"R\.F\.C\.\s*([A-Z&Ñ]{3,4}\d{6}[A-Z0-9]{3})"), .99, "encabezado"),
-        "office": _field("Número de oficio", _one(text, r"N[uú]mero de oficio\s*:\s*([A-Z0-9.-]*\d{4}-\d+)"), .98, "encabezado"),
+        "rfc": _field("RFC", detected_rfc, .99, "encabezado"),
+        "office": _field("Número de oficio", _one(text, r"N[uú]mero\s+de\s+oficio\s*:?\s*([A-Z0-9.-]*\d{4}\s*-\s*\d+)"), .98, "encabezado"),
         "reference": _field("Número de referencia", _one(text, r"N[uú]mero de referencia\s*:?[ ]*([A-Z0-9-]+)"), .98, "encabezado"),
         "expedient": _field("Expediente", _one(text, r"Expediente\s*:?[ ]*([^\n]+)"), .96, "encabezado"),
         "taxpayer_name": _field("Razón social", _one(text, r"C\.?\s*Representante Legal de\s*:\s*\n?([^\n]+)"), .92, "primera página"),
         "date": _field("Fecha del oficio", _one(text, r"Ciudad de México,?\s+a\s+(\d{1,2}\s+de\s+[A-Za-zÁÉÍÓÚáéíóú]+\s+de\s+\d{4})"), .95, "primera página"),
         "deadline": _field("Plazo concedido", _one(text, r"plazo máximo de\s+(\d+\s+d[ií]as\s+h[aá]biles)"), .94, "cierre"),
         "period": _field("Periodo", _one(text, r"correspondiente al periodo de\s+([^\.\n]+)"), .90, "cuerpo"),
-        "amount": _field("Monto", _one(text, r"en cantidad de\s*(\$[\d,]+\.\d{2})"), .95, "cuerpo"),
+        "amount": _field("Monto", _one(text, r"(?:en cantidad de|importe)\s*:?\s*(\$\s*[\d,]+\.\d{1,2})"), .95, "cuerpo"),
     }
     values.update({
         "control": _field("Número de control o seguimiento", _one(text, r"número de control\s+([A-Z0-9-]+)"), .90, "cuerpo"),
