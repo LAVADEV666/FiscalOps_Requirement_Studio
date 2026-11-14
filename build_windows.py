@@ -25,6 +25,8 @@ APP_MODULES = (
     "compliance_engine", "config", "core", "desktop_entry", "document_model",
     "enterprise_store", "evidence_manager", "job_manager", "launcher",
     "maintenance", "manual_ocr", "ocr_engine", "persistence", "processing_pipeline",
+    "document_inspector", "ocr_decision_engine", "ollama_provider",
+    "document_reconstruction", "cross_validation", "fiscal_interpreter", "mixed_region_ocr",
     "template_store", "text_normalizer", "visual_assets", "word_audit",
     "word_builder", "workspace_backup", "professional_document", "backup_store",
 )

@@ -32,6 +32,7 @@ from ocr_decision_engine import decide_document
 from document_reconstruction import reconstruct_document
 from cross_validation import validate_cross_sources
 from fiscal_interpreter import interpret_document
+from mixed_region_ocr import run_mixed_region_ocr
 
 LOGGER = logging.getLogger("fiscalops.pipeline")
 
@@ -331,6 +332,18 @@ class ProcessingPipeline:
             data["triage"] = triage
             data["document_inspection"] = inspection
             data["ocr_decisions"] = decisions
+
+            # Mixed pages retain native text as the canonical reading.  OCR is
+            # limited to embedded visual regions and stored as supplemental
+            # evidence, never concatenated blindly into the page text.
+            tick("mixed_regions", 24, "Leyendo regiones visuales necesarias")
+            has_mixed_pages = any(page.get("page_type") == "MIXED_CONTENT" for page in inspection.get("pages", []))
+            mixed_regions = run_mixed_region_ocr(
+                pdf, d / "ocr_regions", inspection, self.ocr_service,
+                enabled=recover_ocr,
+            ) if has_mixed_pages else {"regions": [], "summary": {"pages": 0, "regions": 0, "processed": 0, "review_required": 0, "skipped": 0}}
+            data.setdefault("ocr_diagnostics", {})["mixed_regions"] = mixed_regions.get("regions", [])
+            data["ocr_diagnostics"]["mixed_region_summary"] = mixed_regions.get("summary", {})
 
             # ── Paso 4b: reconstrucción canónica con trazabilidad ─────────
             tick("reconstructing", 30, "Reconstruyendo el documento por página")

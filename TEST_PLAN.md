@@ -18,6 +18,7 @@ Use an anonymized JSONL manifest with one row per reference page:
 {"pdf":"digital.pdf","page":1,"text":"texto validado","rfc":"ABC010101XX0","amounts":["100.00"],"dates":["2025"]}
 ```
 
-Run `runtime\\python.exe benchmark_ocr.py <manifest.jsonl> --output <report.json>`
-and retain the generated report. Do not claim a fidelity percentage when the
-manifest does not contain validated reference text.
+Run `runtime\\python.exe hybrid_benchmark.py <manifest.jsonl> --output <report.json>`
+and retain the generated report. The runner separates native, PaddleOCR,
+hybrid and Ollama stages; unavailable stages remain `NOT_RUN`. Do not claim a
+fidelity percentage when the manifest does not contain validated reference text.

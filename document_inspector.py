@@ -138,6 +138,28 @@ def inspect_page(page: Any, page_number: int) -> dict[str, Any]:
         for info in images
         if info.get("xres") and info.get("yres")
     ]
+    visual_regions = []
+    for index, info in enumerate(images, 1):
+        bbox = info.get("bbox") if isinstance(info, dict) else None
+        if not bbox or len(bbox) < 4:
+            continue
+        visual_regions.append({
+            "region_id": f"P{page_number:03d}-IMG{index:03d}",
+            "bbox": [round(float(value), 2) for value in bbox[:4]],
+            "width": int(info.get("width", 0) or 0),
+            "height": int(info.get("height", 0) or 0),
+            "xres": round(float(info.get("xres", 0) or 0), 2),
+            "yres": round(float(info.get("yres", 0) or 0), 2),
+        })
+    issues = []
+    if page_type == "EMPTY_OR_UNREADABLE":
+        issues.append({"code": "EMPTY_OR_UNREADABLE", "severity": "high", "message": "No se obtuvo texto ni imagen utilizable."})
+    if page_type == "LOW_QUALITY":
+        issues.append({"code": "LOW_EXTRACTION_QUALITY", "severity": "high", "message": "La extracción contiene señales de posible omisión o corrupción."})
+    if quality_signals["replacement_characters"]:
+        issues.append({"code": "CORRUPT_CHARACTERS", "severity": "high", "message": "Se detectaron caracteres de sustitución o CID."})
+    if page_type == "MIXED_CONTENT" and not visual_regions:
+        issues.append({"code": "MIXED_REGIONS_UNLOCATED", "severity": "medium", "message": "La página contiene imágenes, pero no fue posible localizar sus regiones."})
     return {
         "page": int(page_number),
         "width": round(width, 2),
@@ -152,6 +174,7 @@ def inspect_page(page: Any, page_number: int) -> dict[str, Any]:
         "has_images": has_images,
         "graphic_element_count": graphics,
         "image_resolutions": [[round(x, 2), round(y, 2)] for x, y in resolutions],
+        "visual_regions": visual_regions,
         "resolution_available": bool(resolutions),
         "tables": _table_signal(page, words),
         "quality_score": quality,
@@ -162,7 +185,7 @@ def inspect_page(page: Any, page_number: int) -> dict[str, Any]:
             "corrupt_characters": bool(quality_signals["replacement_characters"]),
         },
         "processing_status": "INSPECTED",
-        "issues": [],
+        "issues": issues,
     }
 
 

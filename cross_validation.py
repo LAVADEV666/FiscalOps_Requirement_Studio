@@ -51,7 +51,8 @@ def validate_cross_sources(reconstruction: dict[str, Any], data: dict[str, Any],
     critical = _tokens(text)
     discrepancies: list[dict[str, Any]] = []
     for page in reconstruction.get("pages", []):
-        for block in page.get("blocks", []):
+        all_blocks = [*page.get("blocks", []), *page.get("supplemental_blocks", [])]
+        for block in all_blocks:
             if block.get("validation_status") == "REVIEW_REQUIRED":
                 discrepancies.append({
                     "page": page.get("page"),
@@ -60,6 +61,15 @@ def validate_cross_sources(reconstruction: dict[str, Any], data: dict[str, Any],
                     "message": "El bloque OCR requiere revisión humana.",
                     "sources": [block.get("source")],
                 })
+        native_tokens = _tokens(page.get("text", ""))
+        region_comparisons = []
+        for block in page.get("supplemental_blocks", []):
+            region_tokens = _tokens(block.get("text", ""))
+            overlap = {kind: sorted(set(region_tokens[kind]) & set(native_tokens[kind])) for kind in region_tokens}
+            supplemental = {kind: sorted(set(region_tokens[kind]) - set(native_tokens[kind])) for kind in region_tokens}
+            region_comparisons.append({"block_id": block.get("fragment_id"), "overlap": overlap, "supplemental_critical_tokens": supplemental})
+        if region_comparisons:
+            page["source_comparisons"] = region_comparisons
     fields = data.get("metadata_validation", {}).get("fields", {})
     critical_fields = {}
     for name, field in fields.items():
@@ -79,6 +89,7 @@ def validate_cross_sources(reconstruction: dict[str, Any], data: dict[str, Any],
         "critical_fields_traced": round(sum(bool(item.get("source")) for item in critical_fields.values()) / max(1, len(critical_fields)) * 100, 2),
         "critical_fields_validated": round(sum(bool(item.get("validated")) for item in critical_fields.values()) / max(1, len(critical_fields)) * 100, 2),
         "discrepancy_count": len(discrepancies),
+        "mixed_regions_processed": sum(len(page.get("supplemental_blocks", [])) for page in reconstruction.get("pages", [])),
     }
     if reference_text is not None:
         metrics.update({"cer": cer(reference_text, text), "wer": wer(reference_text, text), "reference_available": True})

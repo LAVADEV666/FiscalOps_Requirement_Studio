@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+from threading import Event
 from pathlib import Path
 
 from reportlab.pdfgen import canvas
@@ -76,3 +77,22 @@ def test_ollama_status_uses_local_endpoint_and_never_requires_model():
     assert status["available"] is True
     assert status["model_available"] is True
     assert status["local_only"] is True
+
+
+def test_ollama_generation_honors_cancellation_before_request():
+    called = False
+
+    def opener(request, timeout):
+        nonlocal called
+        called = True
+        raise AssertionError("No debe abrirse una conexión cancelada")
+
+    client = OllamaClient(OllamaConfig(enabled=True), opener=opener)
+    cancel = Event(); cancel.set()
+    try:
+        client._request("/api/tags", cancel=cancel)
+    except RuntimeError as error:
+        assert "cancelada" in str(error)
+    else:
+        raise AssertionError("La operación cancelada debía detenerse")
+    assert called is False
