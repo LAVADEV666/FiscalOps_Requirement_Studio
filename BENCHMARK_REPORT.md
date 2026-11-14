@@ -12,10 +12,12 @@
   page coverage **100%**, CER **0.025253**, WER **0.296296**, latency **47.4415
   s/page**, peak traced memory **275,819,850 bytes**. Route:
   `SCANNED_IMAGE → PADDLEOCR_FULL_PAGE`.
-- Ollama provider verification: **server available** at `http://localhost:11434`;
-  installed models were `gemma3:4b`, `qwen3.5:9b`, `qwen2.5-coder:7b` and
-  `qwen3.5:4b`. The three configured FiscalOps models were not installed, so
-  model inference remains `NOT_RUN`.
+- Ollama provider verification: **server available locally** at
+  `http://localhost:11434`; `qwen2.5:1.5b` was downloaded and detected as an
+  installed supported model. A synthetic, non-document JSON generation returned
+  the expected result (`tipo=prueba_local`, `resultado=ok`) with **56.641 s**
+  first-inference latency. This validates the local provider contract only; it
+  is not a fiscal accuracy benchmark.
 - Reference-corpus CER/WER: **NOT TESTED** — no validated anonymized manifest
   was present in the repository.
 - 99% fidelity: **NOT DECLARED** because the specification requires measured

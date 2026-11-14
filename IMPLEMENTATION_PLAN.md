@@ -10,8 +10,8 @@
 | 5 | Page-ordered reconstruction and provenance | DONE |
 | 6 | Cross-validation and quality metrics | DONE |
 | 7 | Fiscal interpretation after validation | DONE — deterministic first; Ollama optional and reviewed |
-| 8 | Compact API/UI status integration | PARTIAL — status card and APIs are integrated; full side-by-side discrepancy viewer remains |
-| 9 | Benchmark, regression and stabilization | PARTIAL — reproducible runner and regression suite added; real corpus/model execution awaits reference manifest and local model |
+| 8 | Compact API/UI status integration | DONE — status card, API endpoints, per-page traceability and native/OCR comparison are integrated |
+| 9 | Benchmark, regression and stabilization | PARTIAL — reproducible runner, regression suite and local model smoke test are complete; a validated fiscal reference manifest is still required |
 
 ## Known boundaries
 
