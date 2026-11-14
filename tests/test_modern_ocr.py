@@ -1,6 +1,13 @@
 import numpy as np
 
-from paddle_ocr_engine.modern import ModernLayoutAnalyzer, ModernOCR
+from paddle_ocr_engine.modern import ModernLayoutAnalyzer, ModernOCR, detection_limit_side_len
+
+
+def test_detection_limit_is_local_and_bounded(monkeypatch):
+    monkeypatch.setenv("FISCALOPS_OCR_DET_LIMIT_SIDE_LEN", "99999")
+    assert detection_limit_side_len() == 4096
+    monkeypatch.setenv("FISCALOPS_OCR_DET_LIMIT_SIDE_LEN", "not-a-number")
+    assert detection_limit_side_len() == 2048
 
 
 def test_modern_predictions_keep_text_confidence_and_polygon_contract():

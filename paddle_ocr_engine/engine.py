@@ -15,7 +15,7 @@ from .numerals import detect_numerals, sequence_warnings
 from .layout_analyzer import LayoutAnalyzer
 from .preprocessor import build_variants
 from .schema import ENGINE_VERSION, SCHEMA_VERSION, make_block
-from .modern import ModernLayoutAnalyzer, ModernOCR, TEXT_MODELS, configure, install_models, model_path, model_ready
+from .modern import ModernLayoutAnalyzer, ModernOCR, TEXT_MODELS, configure, detection_limit_side_len, install_models, model_path, model_ready
 
 LOGGER = logging.getLogger("fiscalops.paddle_ocr")
 OCR_LOCK = RLock()
@@ -75,7 +75,7 @@ class PaddleOCREngine:
                 "rec_batch_num": 1,
                 "cls_batch_num": 1,
                 "cpu_threads": min(4, os.cpu_count() or 1),
-                "det_limit_side_len": 1536,
+                "det_limit_side_len": detection_limit_side_len(),
                 "ocr_version": "PP-OCRv3",
                 **{key: str(self.model_dir / folder) for key, folder in MODEL_PATHS.items()},
             }

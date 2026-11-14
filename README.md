@@ -67,6 +67,10 @@ o mediante `/api/ollama/status`. La configuración de la interfaz se aplica a
 la sesión actual mediante `/api/ollama/config`. Si Ollama está apagado o el
 modelo no está instalado, el flujo determinista y PaddleOCR continúan funcionando.
 
+En documentos escaneados, `FISCALOPS_OCR_DET_LIMIT_SIDE_LEN` controla el lado
+máximo de detección PaddleOCR (por defecto `2048`, acotado entre `1024` y
+`4096`). La imagen original nunca se modifica.
+
 ## Datos locales
 
 Una instalación nueva guarda sus datos en `%LOCALAPPDATA%\SSGT\FiscalOps`. Las instalaciones anteriores pueden seguir usando `work`, `data` y `corrections_store` junto al programa. La variable `FISCALOPS_DATA_DIR` tiene prioridad sobre esas rutas. Consulta **Diagnóstico y mantenimiento** para confirmar la ubicación activa.

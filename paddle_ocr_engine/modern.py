@@ -17,6 +17,14 @@ TEXT_MODELS = {
 LAYOUT_MODEL = "PP-DocLayout-S"
 
 
+def detection_limit_side_len() -> int:
+    try:
+        value = int(os.environ.get("FISCALOPS_OCR_DET_LIMIT_SIDE_LEN", "2048"))
+    except ValueError:
+        value = 2048
+    return max(1024, min(4096, value))
+
+
 def configure(model_dir: Path) -> None:
     os.environ.setdefault("PADDLE_PDX_CACHE_HOME", str(model_dir / "v3-cache"))
     os.environ["PADDLE_PDX_DISABLE_MODEL_SOURCE_CHECK"] = "True"
@@ -58,7 +66,7 @@ class ModernOCR:
             device="cpu", cpu_threads=min(4, os.cpu_count() or 1),
             enable_mkldnn=True, use_doc_orientation_classify=False, use_doc_unwarping=False,
             use_textline_orientation=True, text_recognition_batch_size=1,
-            textline_orientation_batch_size=1, text_det_limit_side_len=1536,
+            textline_orientation_batch_size=1, text_det_limit_side_len=detection_limit_side_len(),
             text_det_limit_type="max", **paths,
         )
 
