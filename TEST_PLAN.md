@@ -5,6 +5,8 @@
 - Digital multipage PDF: every page inspected and native pages preserved.
 - Empty/scanned-style pages: recovery/OCR route is explicit.
 - Critical token metrics: RFC, amounts, dates/periods and folios are traced.
+- OCR preprocessing candidates: selected profile and rejected alternatives stay
+  auditable in the saved diagnostics.
 - CER/WER: exact-match behavior and reference-required policy.
 - Deterministic interpretation: page links and human-review requirement.
 - Ollama: loopback-only configuration, model discovery and local response shape.

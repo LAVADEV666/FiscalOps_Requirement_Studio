@@ -24,6 +24,8 @@ human-review and workspace contracts already in use.
 - `cross_validation`: critical tokens, discrepancies, coverage and review state.
 - `fiscal_interpretation`: deterministic interpretation plus optional Ollama
   block outputs, always marked for human review.
+- OCR diagnostics retain every attempted preprocessing profile and the selected
+  profile, including confidence, block count and character coverage.
 
 ## Supported local models
 

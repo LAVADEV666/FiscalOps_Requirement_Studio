@@ -192,6 +192,16 @@ class PaddleOCREngine:
         best = max(candidates, key=lambda pair: (
             pair[0]["confidence"] + .24 * pair[1] / coverage + min(.06, len(pair[0]["numerals"]) * .01), pair[1]
         ))[0]
+        best["preprocessing_candidates"] = [
+            {
+                "profile": item.get("preprocessing_profile", ""),
+                "confidence": item.get("confidence", 0.0),
+                "characters": count,
+                "blocks": len(item.get("text_blocks", [])),
+                "skew": item.get("skew", 0.0),
+            }
+            for item, count in candidates
+        ]
         return best, quality
 
     def read_region(self, image_path: Path) -> dict[str, Any]:

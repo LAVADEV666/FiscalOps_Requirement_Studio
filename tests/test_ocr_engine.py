@@ -62,3 +62,4 @@ def test_retry_keeps_more_complete_reading_and_original_coordinates(tmp_path, mo
     assert result["preprocessing_profile"] == "balanced"
     assert "12500.00" in result["text"]
     assert result["text_blocks"][1]["bbox"] == [10, 40, 185, 55]
+    assert [item["profile"] for item in result["preprocessing_candidates"]] == ["original", "balanced"]
