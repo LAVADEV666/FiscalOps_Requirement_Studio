@@ -6,7 +6,7 @@
 - New hybrid unit tests plus pipeline/triage coverage: **12 passed**.
 - Mixed-region OCR, benchmark runner, cancellation and traceability tests:
   **13 passed** in the focused hybrid run.
-- Full regression after integration: **123 passed, 1 skipped in 16.49s**.
+- Full regression after integration: **126 passed, 1 skipped in 12.87s**.
 - Verified native benchmark pilot: **1 case measured, CER 0, WER 0**. PaddleOCR
   was correctly reported as `NOT_RUN` because the case required native text only.
 - Real local scanned pilot (synthetic verified reference): **1 case measured**,
@@ -49,6 +49,12 @@
   was present in the repository.
 - 99% fidelity: **NOT DECLARED** because the specification requires measured
   reference text.
+- Real boundary validation with a user-provided 16-page administrative act:
+  six authority request blocks were detected from request language and
+  `Punto N` anchors. `qwen3.5:4b` accepted all six start/end line pairs after
+  structural validation in **15.43 s**. The full local pipeline persisted all
+  six points with method `ollama_validated_boundaries`; this validates routing
+  and traceability, not legal or OCR fidelity.
 
 ## Runtime fields emitted
 

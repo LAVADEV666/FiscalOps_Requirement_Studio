@@ -12,7 +12,10 @@ from typing import Any, Callable
 from urllib.parse import urlparse
 
 
-SUPPORTED_MODELS = ("qwen2.5:3b", "qwen2.5:1.5b", "llama3.2:3b")
+SUPPORTED_MODELS = (
+    "qwen2.5:3b", "qwen2.5:1.5b", "llama3.2:3b",
+    "gemma3:4b", "qwen3.5:4b", "qwen3.5:9b", "qwen2.5-coder:7b",
+)
 
 
 @dataclass(frozen=True)
@@ -138,13 +141,26 @@ class OllamaClient:
             "prompt": prompt,
             "stream": False,
             "format": "json",
+            "think": False,
             "keep_alive": 0,
-            "options": {"temperature": 0, "num_ctx": 4096},
+            "options": {"temperature": 0, "num_ctx": 4096, "num_predict": 800},
         }, cancel=cancel)
+        raw_response = str(payload.get("response", "")).strip()
         try:
-            parsed = json.loads(str(payload.get("response", "{}")))
+            parsed = json.loads(raw_response or "{}")
         except json.JSONDecodeError as exc:
-            raise RuntimeError("Ollama devolvió JSON inválido.") from exc
+            decoder = json.JSONDecoder()
+            parsed = None
+            for offset, character in enumerate(raw_response):
+                if character != "{":
+                    continue
+                try:
+                    parsed, _ = decoder.raw_decode(raw_response[offset:])
+                    break
+                except json.JSONDecodeError:
+                    continue
+            if parsed is None:
+                raise RuntimeError("Ollama devolvió JSON inválido.") from exc
         return {"result": parsed, "latency_ms": payload.get("_latency_ms"), "model": self.config.model}
 
 

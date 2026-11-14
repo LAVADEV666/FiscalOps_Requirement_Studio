@@ -11,6 +11,7 @@ from ocr_engine import OCREngine
 from paddle_ocr_engine.schema import empty_result
 from visual_assets import detect_native_tables
 from config import ocr_dpi_for_page
+from boundary_analyzer import analyze_boundaries
 
 LOGGER = logging.getLogger("fiscalops.extract")
 
@@ -38,9 +39,9 @@ ENDINGS = [re.compile(value, re.I) for value in (
 NOISE = [re.compile(value, re.I) for value in (
     r"^Administraci[oó]n General", r"^Administraci[oó]n Central",
     r"^Administraci[oó]n de Fiscalizaci[oó]n", r"^Administraci[oó]n Desconcentrada",
-    r"^Subadministraci[oó]n", r"^N[uú]mero de oficio:", r"^Expediente",
-    r"^R\.F\.C\.", r"^N[uú]mero de referencia", r"^Av\.", r"Marca SAT",
-    r"sat\.gob\.mx", r"^\d+\s*/\s*\d+$",
+    r"^Subadministraci[oó]n", r"^N[uú]mero de oficio", r"^Expediente",
+    r"^R\.F\.C\.\s*", r"^N[uú]mero de referencia", r"^RDGR/PJRG/JAS",
+    r"^Av\.", r"Marca SAT", r"sat\.gob\.mx", r"^\d+\s*/\s*\d+$",
 )]
 ACT_TERMS = ("número de oficio", "numero de oficio", "expediente", "r.f.c.", "rfc", "servicio de administración tributaria", "servicio de administracion tributaria")
 REQUEST_TERMS = ("se solicita", "le requiere", "requerimiento", "deberá aportar", "proporcione", "información adicional", "documentación adicional")
@@ -139,7 +140,8 @@ def coherent(matches):
 
 def extract(path: Path, ocr_engine: OCREngine | None = None,
             native_tables: dict[int, list] | None = None, *, recover_ocr: bool = False,
-            allow_manual: bool = False, native_page_numbers: set[int] | None = None) -> dict[str, Any]:
+            allow_manual: bool = False, native_page_numbers: set[int] | None = None,
+            boundary_client: Any | None = None) -> dict[str, Any]:
     raw_pages, parse_pages, native_count, ocr_count, ocr_pages = [], [], 0, 0, []
     ocr_ready = None
     with pdfplumber.open(path) as pdf:
@@ -200,7 +202,33 @@ def extract(path: Path, ocr_engine: OCREngine | None = None,
     act_hits = [term for term in ACT_TERMS if term in folded]
     request_hits = [term for term in REQUEST_TERMS if term in folded]
     points = []
-    if markers:
+    boundaries = analyze_boundaries(pages, boundary_client)
+    if boundaries["segments"]:
+        for segment in boundaries["segments"]:
+            raw_point = segment["text"].strip()
+            points.append({
+                "number": int(segment["number"]),
+                "text": normalize_extracted_text(raw_point),
+                "raw_text": raw_point,
+                "page_start": segment["page_start"],
+                "page_end": segment["page_end"],
+                "boundary": {
+                    "version": boundaries["version"],
+                    "method": segment["method"],
+                    "confidence": segment["confidence"],
+                    "review_required": segment["review_required"],
+                    "start_line_id": segment["start_line_id"],
+                    "end_line_id": segment["end_line_id"],
+                    "reason": segment.get("reason", ""),
+                },
+            })
+        first = boundaries["segments"][0]["start_index"]
+        last = boundaries["segments"][-1]["end_index"]
+        records = boundaries["records"]
+        introduction = "\n".join(item["text"] for item in records[:first]).strip() or "[INICIO INFERIDO POR ANCLAS DE SOLICITUD]"
+        general_instructions = "\n".join(item["text"] for item in records[last + 1:]).strip()
+        strategy = boundaries["method"]
+    elif markers:
         start = markers[0].start()
         ending_matches = [match for pattern in ENDINGS if (match := pattern.search(full, start))]
         finish = min((match.start() for match in ending_matches), default=len(full))
@@ -237,4 +265,4 @@ def extract(path: Path, ocr_engine: OCREngine | None = None,
         for page_result in ocr_pages
         for item in page_result.get("numerals", [])
     ]
-    return {"source_file": path.name, "document_type": "native" if not ocr_count else ("scanned" if not native_count else "mixed"), "pages": len(pages), "native_pages": native_count, "ocr_pages": ocr_count, "introduction": introduction, "points": points, "metadata_validation": metadata(raw_full), "general_instructions": general_instructions, "warnings": [], "classification": classification, "diagnostics": {"anchors_found": len(anchors), "main_point_count": len(points), "strategy": strategy}, "ocr_diagnostics": {"pages": ocr_pages, "review_required": sum(bool(x.get("requires_review")) for x in ocr_pages)}, "detected_numerals": detected_numerals}
+    return {"source_file": path.name, "document_type": "native" if not ocr_count else ("scanned" if not native_count else "mixed"), "pages": len(pages), "native_pages": native_count, "ocr_pages": ocr_count, "introduction": introduction, "points": points, "metadata_validation": metadata(raw_full), "general_instructions": general_instructions, "warnings": [], "classification": classification, "diagnostics": {"anchors_found": len(anchors), "main_point_count": len(points), "strategy": strategy, "boundary_model": {"model": boundaries.get("model"), "status": boundaries.get("model_status"), "method": boundaries.get("method")}}, "ocr_diagnostics": {"pages": ocr_pages, "review_required": sum(bool(x.get("requires_review")) for x in ocr_pages)}, "detected_numerals": detected_numerals}

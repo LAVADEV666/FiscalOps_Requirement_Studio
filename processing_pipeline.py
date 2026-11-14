@@ -337,7 +337,8 @@ class ProcessingPipeline:
             }
             data = FiscalOpsNormalizer.normalize_workspace(extract(
                 pdf, self.ocr_service, native_tables, recover_ocr=recover_ocr,
-                allow_manual=allow_manual, native_page_numbers=native_page_numbers))
+                allow_manual=allow_manual, native_page_numbers=native_page_numbers,
+                boundary_client=self._ollama_client))
             data["triage"] = triage
             data["document_inspection"] = inspection
             data["ocr_decisions"] = decisions

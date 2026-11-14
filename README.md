@@ -57,15 +57,24 @@ establecer la configuración inicial de una sesión local también puede usar:
 
 ```powershell
 $env:FISCALOPS_OLLAMA_ENABLED="1"
-$env:FISCALOPS_OLLAMA_MODEL="qwen2.5:3b"
+$env:FISCALOPS_OLLAMA_MODEL="qwen3.5:4b"
 $env:FISCALOPS_OLLAMA_URL="http://localhost:11434"
 ```
 
-Modelos soportados inicialmente: `qwen2.5:3b`, `qwen2.5:1.5b` y
-`llama3.2:3b`. Comprueba instalación, latencia y disponibilidad en **Ajustes**
-o mediante `/api/ollama/status`. La configuración de la interfaz se aplica a
-la sesión actual mediante `/api/ollama/config`. Si Ollama está apagado o el
-modelo no está instalado, el flujo determinista y PaddleOCR continúan funcionando.
+Para cortes semánticos se recomienda `qwen3.5:4b`; `gemma3:4b` es una
+alternativa local de tamaño similar. También están soportados `qwen2.5:3b`,
+`qwen2.5:1.5b`, `llama3.2:3b`, `qwen3.5:9b` y `qwen2.5-coder:7b`.
+Comprueba instalación, latencia y disponibilidad en **Ajustes** o mediante
+`/api/ollama/status`. La configuración de la interfaz se aplica a la sesión
+actual mediante `/api/ollama/config`. Si Ollama está apagado o el modelo no
+está instalado, el flujo determinista y PaddleOCR continúan funcionando.
+
+La segmentación semántica se ejecuta después de leer el documento y antes de
+interpretarlo: detecta frases de solicitud, propone límites de línea con
+Ollama y valida que no entren numerales de declaraciones reproducidas,
+fundamentos legales ni encabezados. Cada punto conserva `start_line_id`,
+`end_line_id`, páginas, confianza y método. Los incisos permanecen dentro de
+su Punto; si el modelo falla, se usa el corte determinista seguro.
 
 En documentos escaneados, `FISCALOPS_OCR_DET_LIMIT_SIDE_LEN` controla el lado
 máximo de detección PaddleOCR (por defecto `2048`, acotado entre `1024` y

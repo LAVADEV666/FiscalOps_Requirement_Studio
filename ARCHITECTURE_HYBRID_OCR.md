@@ -37,6 +37,12 @@ not bypass inspection, reconstruction or validation.
 4. `document_reconstruction` creates page-ordered blocks with source labels.
 5. `cross_validation` measures coverage and flags low-confidence OCR/critical
    fields without choosing a semantically convenient value.
-6. `fiscal_interpreter` creates a traceable deterministic interpretation. When
+6. `boundary_analyzer` separates authority requests from reproduced taxpayer
+   text using request language and `Punto N` anchors. It exposes stable
+   page-line boundaries and keeps nested incisos inside their parent point.
+7. When enabled, Ollama receives compact local boundary windows and may refine
+   the line cuts. Structural validation rejects hallucinated or out-of-range
+   cuts and falls back to the deterministic candidate.
+8. `fiscal_interpreter` creates a traceable deterministic interpretation. When
    enabled, Ollama receives local blocks only and its result remains a reviewed
    suggestion.
