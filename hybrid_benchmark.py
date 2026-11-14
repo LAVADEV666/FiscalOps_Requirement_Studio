@@ -20,6 +20,7 @@ from document_inspector import inspect_pdf
 from ocr_decision_engine import decide_document
 from ocr_engine import OCREngine
 from ollama_provider import OllamaClient
+from mixed_region_ocr import run_mixed_region_ocr
 
 
 def _validate(rows: list[dict[str, Any]]) -> list[str]:
@@ -76,6 +77,7 @@ def run_benchmark(manifest: str | Path, output: str | Path, *, pilot: bool = Fal
                 decision = decisions["pages"][page_number - 1]
                 ocr_text = None
                 ocr_error = None
+                ocr_mode = "none"
                 if decision.get("ocr_required") and ocr_available is None:
                     engine = OCREngine(temporary / "ocr-cache")
                     try:
@@ -85,17 +87,34 @@ def run_benchmark(manifest: str | Path, output: str | Path, *, pilot: bool = Fal
                     if ocr_available:
                         stages["paddleocr"]["status"] = "RUN"
                 if decision.get("ocr_required") and ocr_available and engine is not None:
-                    image = temporary / f"case-{case_number}.png"
-                    pixmap = page.get_pixmap(matrix=fitz.Matrix(300 / 72, 300 / 72), alpha=False)
-                    pixmap.save(str(image))
                     try:
-                        ocr_text = str(engine.run(image, force=True).get("text", ""))
+                        if decision["action"] == "NATIVE_PLUS_REGIONS":
+                            region_result = run_mixed_region_ocr(
+                                pdf_path,
+                                temporary / f"regions-{case_number}",
+                                inspection,
+                                engine,
+                                enabled=True,
+                                min_area_ratio=0.001,
+                            )
+                            ocr_text = "\n".join(
+                                str(item.get("text", "")) for item in region_result.get("regions", []) if str(item.get("text", "")).strip()
+                            ).strip()
+                            ocr_mode = "mixed_regions"
+                        else:
+                            image = temporary / f"case-{case_number}.png"
+                            pixmap = page.get_pixmap(matrix=fitz.Matrix(300 / 72, 300 / 72), alpha=False)
+                            pixmap.save(str(image))
+                            ocr_text = str(engine.run(image, force=True).get("text", ""))
+                            ocr_mode = "full_page"
                     except Exception as exc:
                         ocr_error = type(exc).__name__
                 elapsed = time.perf_counter() - inspection_started
             expected = str(row["text"])
             measured = decision["action"] == "NATIVE_ONLY" or ocr_text is not None
-            actual = native_text if decision["action"] == "NATIVE_ONLY" else (ocr_text or "")
+            actual = native_text if decision["action"] == "NATIVE_ONLY" else (
+                f"{native_text}\n{ocr_text}".strip() if decision["action"] == "NATIVE_PLUS_REGIONS" else (ocr_text or "")
+            )
             if decision["action"] == "NATIVE_ONLY":
                 stages["native"]["cases"] += 1
             if ocr_text is not None:
@@ -124,17 +143,28 @@ def run_benchmark(manifest: str | Path, output: str | Path, *, pilot: bool = Fal
                 total["cer"].append(cer(expected, actual)); total["wer"].append(wer(expected, actual))
             total["seconds"].append(elapsed)
             total["pages_inspected"] += inspection["inspected_pages"]; total["pages_total"] += inspection["total_pages"]
-            details.append({"case": case_number, "pdf": str(row["pdf"]), "page": page_number, "page_type": page_kind, "route": decision["action"], "measured": measured, "cer": cer(expected, actual) if measured else None, "wer": wer(expected, actual) if measured else None, "ocr_status": "RUN" if ocr_text is not None else ("NOT_RUN" if ocr_available is False or decision.get("ocr_required") else "N/A"), "ocr_error": ocr_error, "ollama_status": ollama_case_status, "ollama_latency_ms": ollama_latency_ms, "ollama_error": ollama_error, "inspection_coverage": inspection["coverage"], "seconds": round(elapsed, 4)})
+            ocr_status = "ERROR" if ocr_error else ("RUN" if ocr_text is not None else ("NOT_RUN" if ocr_available is False or decision.get("ocr_required") else "N/A"))
+            details.append({"case": case_number, "pdf": str(row["pdf"]), "page": page_number, "page_type": page_kind, "route": decision["action"], "measured": measured, "cer": cer(expected, actual) if measured else None, "wer": wer(expected, actual) if measured else None, "ocr_status": ocr_status, "ocr_mode": ocr_mode, "ocr_error": ocr_error, "ollama_status": ollama_case_status, "ollama_latency_ms": ollama_latency_ms, "ollama_error": ollama_error, "inspection_coverage": inspection["coverage"], "seconds": round(elapsed, 4)})
     _, peak_memory = tracemalloc.get_traced_memory(); tracemalloc.stop()
     if stages["ollama"]["latency_ms"]:
         stages["ollama"]["latency_ms_average"] = round(sum(stages["ollama"]["latency_ms"]) / len(stages["ollama"]["latency_ms"]), 2)
+    metrics = {"cer": round(sum(total["cer"]) / max(1, len(total["cer"])), 6) if total["cer"] else None, "wer": round(sum(total["wer"]) / max(1, len(total["wer"])), 6) if total["wer"] else None, "measured_cases": len(total["cer"]), "page_coverage": round(total["pages_inspected"] / max(1, total["pages_total"]), 6), "seconds_per_case": round(sum(total["seconds"]) / max(1, len(total["seconds"])), 4), "ollama_seconds_per_case": round(sum(total["ollama_seconds"]) / max(1, len(total["ollama_seconds"])), 4) if total["ollama_seconds"] else None, "peak_memory_bytes": peak_memory}
+    quality_gates = {
+        "all_cases_measured": bool(rows) and len(total["cer"]) == len(rows),
+        "page_coverage_100": metrics["page_coverage"] >= 1.0,
+        "cer_target_99": metrics["cer"] is not None and metrics["cer"] <= 0.01,
+        "wer_target_99": metrics["wer"] is not None and metrics["wer"] <= 0.01,
+        "no_ocr_errors": not any(item["ocr_status"] == "ERROR" for item in details),
+        "no_ollama_errors": not any(item["ollama_status"] == "ERROR" for item in details),
+    }
     report = {
         "schema_version": "fiscalops.hybrid-benchmark.v1",
         "manifest": {"path": str(manifest_path), "cases": len(rows), "ground_truth": "verified", "pilot": pilot},
         "stages": stages,
-        "metrics": {"cer": round(sum(total["cer"]) / max(1, len(total["cer"])), 6) if total["cer"] else None, "wer": round(sum(total["wer"]) / max(1, len(total["wer"])), 6) if total["wer"] else None, "measured_cases": len(total["cer"]), "page_coverage": round(total["pages_inspected"] / max(1, total["pages_total"]), 6), "seconds_per_case": round(sum(total["seconds"]) / max(1, len(total["seconds"])), 4), "ollama_seconds_per_case": round(sum(total["ollama_seconds"]) / max(1, len(total["ollama_seconds"])), 4) if total["ollama_seconds"] else None, "peak_memory_bytes": peak_memory},
+        "metrics": metrics,
         "details": details,
-        "promotable": bool(rows) and all(item["measured"] and item["ocr_status"] != "ERROR" and item["ollama_status"] != "ERROR" for item in details),
+        "quality_gates": quality_gates,
+        "promotable": all(quality_gates.values()),
         "fidelity_claim": "MEASURED_AGAINST_VERIFIED_REFERENCE",
     }
     Path(output).write_text(json.dumps(report, ensure_ascii=False, indent=2), encoding="utf-8")

@@ -19,4 +19,6 @@ def test_hybrid_benchmark_measures_verified_native_case(tmp_path):
     assert report["metrics"]["measured_cases"] == 1
     assert report["metrics"]["cer"] == 0
     assert report["promotable"] is True
+    assert report["quality_gates"]["cer_target_99"] is True
+    assert report["quality_gates"]["no_ocr_errors"] is True
     assert json.loads(output.read_text(encoding="utf-8"))["stages"]["paddleocr"]["status"] == "NOT_RUN"

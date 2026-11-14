@@ -331,8 +331,13 @@ class ProcessingPipeline:
             # ── Paso 4: Extracción principal (core.extract con soporte triage) ──
             tick("extracting", 18, "Extrayendo texto y OCR")
             native_tables = {}
+            native_page_numbers = {
+                int(page.get("page", 0)) for page in inspection.get("pages", [])
+                if page.get("page_type") in {"DIGITAL_TEXT", "MIXED_CONTENT"} and page.get("has_native_text")
+            }
             data = FiscalOpsNormalizer.normalize_workspace(extract(
-                pdf, self.ocr_service, native_tables, recover_ocr=recover_ocr, allow_manual=allow_manual))
+                pdf, self.ocr_service, native_tables, recover_ocr=recover_ocr,
+                allow_manual=allow_manual, native_page_numbers=native_page_numbers))
             data["triage"] = triage
             data["document_inspection"] = inspection
             data["ocr_decisions"] = decisions

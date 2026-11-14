@@ -42,7 +42,7 @@ NOISE = [re.compile(value, re.I) for value in (
     r"^R\.F\.C\.", r"^N[uú]mero de referencia", r"^Av\.", r"Marca SAT",
     r"sat\.gob\.mx", r"^\d+\s*/\s*\d+$",
 )]
-ACT_TERMS = ("número de oficio", "expediente", "r.f.c.", "servicio de administración tributaria")
+ACT_TERMS = ("número de oficio", "numero de oficio", "expediente", "r.f.c.", "rfc", "servicio de administración tributaria", "servicio de administracion tributaria")
 REQUEST_TERMS = ("se solicita", "le requiere", "requerimiento", "deberá aportar", "proporcione", "información adicional", "documentación adicional")
 
 
@@ -120,14 +120,14 @@ def coherent(matches):
 
 def extract(path: Path, ocr_engine: OCREngine | None = None,
             native_tables: dict[int, list] | None = None, *, recover_ocr: bool = False,
-            allow_manual: bool = False) -> dict[str, Any]:
+            allow_manual: bool = False, native_page_numbers: set[int] | None = None) -> dict[str, Any]:
     raw_pages, parse_pages, native_count, ocr_count, ocr_pages = [], [], 0, 0, []
     ocr_ready = None
     with pdfplumber.open(path) as pdf:
         if not pdf.pages:
             raise ValueError("El PDF no contiene páginas.")
         for page_number, page in enumerate(pdf.pages, 1):
-            if native(page):
+            if native(page) or page_number in (native_page_numbers or set()):
                 text = page.extract_text(x_tolerance=2, y_tolerance=3) or ""; native_count += 1
                 if native_tables is not None:
                     tables = list(detect_native_tables(page, page.extract_words()))

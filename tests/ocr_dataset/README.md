@@ -26,6 +26,11 @@ Para crear un inventario inicial sin copiar los PDFs:
 El inventario no es ground truth: una persona debe anonimizar, revisar el texto,
 etiquetar numerales/tablas y cambiar `ground_truth_status` a `verified`.
 
+Para una comprobación reproducible sin documentos reales, el repositorio incluye
+`generate_controlled_corpus.py`. Genera referencias sintéticas marcadas como
+`ground_truth_origin=synthetic_generator`; sirven para probar rutas y métricas,
+pero no cuentan como validación fiscal humana ni como evidencia del 99%.
+
 Ejecute el benchmark definitivo con:
 
 ```powershell

@@ -16,6 +16,19 @@
 
 ## Corpus benchmark
 
+For a non-sensitive routing smoke test, generate the deterministic controlled
+corpus (the output is ignored by Git):
+
+```powershell
+runtime\python.exe tests\ocr_dataset\generate_controlled_corpus.py tests\ocr_dataset\local\controlled --per-category 10
+runtime\python.exe hybrid_benchmark.py tests\ocr_dataset\local\controlled\manifest.jsonl --output tests\ocr_dataset\local\controlled\report.json --pilot
+```
+
+The generated references are marked `synthetic_generator`; they prove routing
+and instrumentation, not fiscal accuracy. The runner only reports
+`promotable=true` when every case is measured, coverage is complete, and both
+CER and WER are at or below 1%.
+
 Use an anonymized JSONL manifest with one row per reference page:
 
 ```json
