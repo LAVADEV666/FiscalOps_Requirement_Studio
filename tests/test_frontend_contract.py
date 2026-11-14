@@ -7,6 +7,7 @@ def test_all_editor_tabs_have_panels():
  assert tabs<=panels, f'Pestañas sin panel: {sorted(tabs-panels)}'
  assert tabs == {'requirements','preview','visuals','metadata','hybrid','templates'}
  assert tabs == panels
+ assert 'renderHybridComparison' in js
 def test_templates_are_available_from_home_and_workspace():
  home=(ROOT/'static/index.html').read_text(encoding='utf-8')
  audit=(ROOT/'static/audit.html').read_text(encoding='utf-8')

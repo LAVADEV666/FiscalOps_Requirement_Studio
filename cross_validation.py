@@ -77,12 +77,15 @@ def validate_cross_sources(reconstruction: dict[str, Any], data: dict[str, Any],
             continue
         value = str(field.get("value", ""))
         placeholder = not value or value.startswith("[")
+        source_page = field.get("page")
+        if not source_page and not placeholder:
+            source_page = next((page.get("page") for page in reconstruction.get("pages", []) if value.upper() in str(page.get("text", "")).upper()), None)
         critical_fields[name] = {
             "value": value if not placeholder else "",
             "source": field.get("source", "deterministic_extraction"),
-            "page": field.get("page"),
+            "page": source_page,
             "validated": not placeholder and value.upper() in text.upper(),
-            "requires_review": placeholder or value.upper() not in text.upper(),
+            "requires_review": placeholder or value.upper() not in text.upper() or source_page is None,
         }
     metrics = {
         "page_coverage": round(reconstruction.get("non_empty_pages", 0) / max(1, reconstruction.get("page_count", 0)) * 100, 2),

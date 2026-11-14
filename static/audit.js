@@ -142,7 +142,7 @@ function renderAll() {
     $('#caseTitle').textContent=metadata.taxpayer_name?.valid?metadata.taxpayer_name.value:'Expediente fiscal';
     window.CompanyIdentity.mount($('#caseCompanyIdentity'),expedientRfc(),{registeredOnly:true});
     $('#caseDetail').textContent=`${data.pages} ${data.pages===1?'página':'páginas'} · ${data.points.length} ${data.points.length===1?'numeral':'numerales'}`;
-    renderRequirements();renderVisuals();renderHybrid();
+    renderRequirements();renderVisuals();renderHybrid();renderHybridComparison();
     if(!$('#previewTab').classList.contains('hidden'))renderPreview();
     renderMetadata();
 }
@@ -165,7 +165,7 @@ function activateTab(name) {
     document.querySelectorAll('.tab').forEach(t=>t.classList.toggle('hidden',t!==target));
     if(name==='preview')renderPreview();
     if(name==='requirements')renderRequirements();
-    if(name==='hybrid')renderHybrid();
+    if(name==='hybrid'){renderHybrid();renderHybridComparison();}
     if(name==='templates')setupTemplateLibrary(target,expedientRfc());
     $('#editorScroll').scrollTop=0;
 }
@@ -235,6 +235,21 @@ function renderHybrid(){
     const decisionByPage=new Map((decisions.pages||[]).map(item=>[Number(item.page),item]));
     const pages=inspection.pages||[];
     target.innerHTML=`<div class="hybrid-report"><div class="data-hero"><span class="eyebrow">TRAZABILIDAD · DOCUMENT INTELLIGENCE</span><h3>Inspección y validación del documento</h3><p>La lectura conserva el original y separa evidencia nativa, PaddleOCR, reintentos y revisión humana.</p></div><div class="hybrid-report-grid"><div><b>${inspection.inspected_pages||0}/${inspection.total_pages||0}</b><span>Páginas inspeccionadas</span></div><div><b>${summary.full_page_ocr||0}</b><span>Páginas OCR completo</span></div><div><b>${summary.mixed_regions||0}</b><span>Páginas mixtas / regiones</span></div><div><b>${metrics.discrepancy_count||0}</b><span>Incidencias</span></div><div><b>${metrics.critical_fields_validated||0}%</b><span>Campos críticos validados</span></div><div><b>${metrics.reference_available?'Medido':'No declarado'}</b><span>Fidelidad</span></div></div><div class="hybrid-report-note">Ollama: ${esc(interpretation.ollama?.used?interpretation.ollama.model:'no utilizado')} · ${esc(interpretation.ollama?.reason||'interpretación determinista revisable')}</div><div class="hybrid-page-list">${pages.map(item=>{const decision=decisionByPage.get(Number(item.page))||{};return `<div class="hybrid-page-row"><b>Página ${item.page}</b><span>${esc(item.page_type||'—')}</span><span>${esc(decision.action||'—')}</span><span>${Math.round(Number(item.quality_score||0)*100)}% calidad</span><small>${esc((decision.source_priority||[]).join(' · '))}${decision.human_review_required?' · Revisión humana':''}</small></div>`}).join('')||'<div class="empty">No hay inspección guardada para este expediente.</div>'}</div></div>`;
+}
+
+function renderHybridComparison(){
+    const target=$('#hybridTab');if(!target)return;
+    const inspectionPages=data.document_inspection?.pages||[], reconstructionPages=data.reconstruction?.pages||[];
+    target.querySelectorAll('.hybrid-page-row').forEach((row,index)=>{
+        const inspected=inspectionPages[index]||{}, reconstructed=reconstructionPages[index]||{};
+        const nativeText=String(inspected.native_text||((inspected.page_type==='DIGITAL_TEXT')?reconstructed.text||'':''));
+        const ocrBlocks=[...(reconstructed.blocks||[]),...(reconstructed.supplemental_blocks||[])].filter(block=>block.source!=='PDF_NATIVE');
+        const ocrText=ocrBlocks.map(block=>block.text||'').filter(Boolean).join('\n');
+        if(!nativeText&&!ocrText)return;
+        const details=document.createElement('details');details.className='hybrid-compare';
+        details.innerHTML=`<summary>Comparar texto nativo y OCR</summary><div class="hybrid-compare-grid"><section><h4>Texto nativo</h4><pre>${esc(nativeText||'No disponible')}</pre></section><section><h4>OCR / reconstrucción suplementaria</h4><pre>${esc(ocrText||'No se ejecutó OCR en esta página')}</pre></section></div>`;
+        row.appendChild(details);
+    });
 }
 
 function renderMetadata() {

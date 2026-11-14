@@ -41,11 +41,12 @@ def test_inspector_covers_every_page_and_decides_recovery(tmp_path):
 
 
 def test_quality_metrics_are_not_claimed_without_reference():
-    reconstruction = {"text": "[PÁGINA 1]\nR.F.C. ABC010101XX0", "page_count": 1, "non_empty_pages": 1, "pages": []}
+    reconstruction = {"text": "[PÁGINA 1]\nR.F.C. ABC010101XX0", "page_count": 1, "non_empty_pages": 1, "pages": [{"page": 1, "text": "R.F.C. ABC010101XX0", "blocks": []}]}
     data = {"metadata_validation": {"fields": {"rfc": {"value": "ABC010101XX0", "source": "PDF_NATIVE"}}}, "points": []}
     result = validate_cross_sources(reconstruction, data)
     assert result["metrics"]["reference_available"] is False
     assert result["fidelity_claim"] == "NOT_DECLARED_WITHOUT_REFERENCE"
+    assert result["critical_fields"]["rfc"]["page"] == 1
     assert cer("hola mundo", "hola mundo") == 0
     assert wer("hola mundo", "hola mundo") == 0
 
