@@ -51,8 +51,9 @@ la extracción nativa y utiliza el PaddleOCR incluido solo en páginas escaneada
 o regiones visuales mixtas. La reconstrucción, validación cruzada y
 interpretación quedan guardadas en el expediente con trazabilidad por página.
 
-Ollama es opcional y permanece desactivado por defecto. Para activarlo en una
-sesión local:
+Ollama es opcional y permanece desactivado por defecto. Puede activarse y
+seleccionarse el modelo desde **Ajustes → Inteligencia documental local**. Para
+establecer la configuración inicial de una sesión local también puede usar:
 
 ```powershell
 $env:FISCALOPS_OLLAMA_ENABLED="1"
@@ -62,8 +63,9 @@ $env:FISCALOPS_OLLAMA_URL="http://localhost:11434"
 
 Modelos soportados inicialmente: `qwen2.5:3b`, `qwen2.5:1.5b` y
 `llama3.2:3b`. Comprueba instalación, latencia y disponibilidad en **Ajustes**
-o mediante `/api/ollama/status`. Si Ollama está apagado o el modelo no está
-instalado, el flujo determinista y PaddleOCR continúan funcionando.
+o mediante `/api/ollama/status`. La configuración de la interfaz se aplica a
+la sesión actual mediante `/api/ollama/config`. Si Ollama está apagado o el
+modelo no está instalado, el flujo determinista y PaddleOCR continúan funcionando.
 
 ## Datos locales
 

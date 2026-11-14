@@ -51,6 +51,28 @@ def test_quality_metrics_are_not_claimed_without_reference():
     assert wer("hola mundo", "hola mundo") == 0
 
 
+def test_cross_validation_keeps_native_ocr_comparison_and_curp_traceability():
+    reconstruction = {
+        "text": "[PÁGINA 1]\nRFC ABC010101XX0 CURP GODE561231HDFRRL09",
+        "page_count": 1,
+        "non_empty_pages": 1,
+        "pages": [{
+            "page": 1,
+            "native_text": "RFC ABC010101XX0 CURP GODE561231HDFRRL09",
+            "text": "RFC ABC010101XX0 CURP GODE561231HDFRRL08",
+            "blocks": [{"fragment_id": "OCR-1", "text": "RFC ABC010101XX0 CURP GODE561231HDFRRL08", "source": "PADDLE_OCR"}],
+            "supplemental_blocks": [],
+        }],
+    }
+    data = {"metadata_validation": {"fields": {"rfc": {"value": "ABC010101XX0", "source": "encabezado"}}}}
+    result = validate_cross_sources(reconstruction, data)
+    comparison = reconstruction["pages"][0]["source_comparisons"][0]
+    assert comparison["kind"] == "NATIVE_VS_OCR"
+    assert comparison["native_cer_against_ocr"] > 0
+    assert result["critical_tokens"]["curp"] == ["GODE561231HDFRRL09"]
+    assert result["critical_fields"]["rfc"]["page"] == 1
+
+
 def test_interpretation_keeps_traceability_and_does_not_invent():
     result = deterministic_interpretation(
         {"metadata_validation": {"fields": {}}, "points": [{"requirement_id": "REQ-001", "text": "Entregue el contrato.", "page_start": 1, "page_end": 1}]},

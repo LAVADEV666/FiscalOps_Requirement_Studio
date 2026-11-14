@@ -23,7 +23,7 @@ function setProcessing(value){
     }
 }
 async function refreshHybridStatus(){
-    const box=$('#hybridStatus'),state=$('#ollamaState'),model=$('#ollamaModel');
+    const box=$('#hybridStatus'),state=$('#ollamaState'),model=$('#ollamaModel'),toggle=$('#ollamaEnabled'),selector=$('#ollamaModelSelect');
     if(!box||!state||!model)return;
     try{
         const response=await fetch('/api/ollama/status',{cache:'no-store'}),result=await response.json();
@@ -32,10 +32,25 @@ async function refreshHybridStatus(){
         box.querySelector('span').textContent=ready?'Ollama disponible · IA local lista':(result.enabled?'Ollama activado · modelo no disponible':'Ollama desactivado · flujo determinista disponible');
         state.textContent=ready?'Disponible':(result.enabled?'Revisar':'Desactivado');
         model.textContent=result.model||'—';
+        if(toggle)toggle.checked=Boolean(result.enabled);
+        if(selector){
+            const models=result.supported_models||[];
+            selector.innerHTML=models.map(value=>`<option value="${escapeHTML(value)}">${escapeHTML(value)}</option>`).join('');
+            selector.value=result.model||models[0]||'';
+        }
     }catch(error){
         box.dataset.state='warn';box.querySelector('span').textContent='No se pudo consultar Ollama · el flujo local continúa';state.textContent='No disponible';model.textContent='—';
     }
 }
+$('#saveOllamaSettings')?.addEventListener('click',async()=>{
+    const message=$('#ollamaConfigMessage'),button=$('#saveOllamaSettings');
+    button.disabled=true;message.textContent='Guardando configuración local…';
+    try{
+        const response=await fetch('/api/ollama/config',{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({enabled:Boolean($('#ollamaEnabled')?.checked),model:$('#ollamaModelSelect')?.value})}),result=await response.json();
+        if(!response.ok)throw new Error(result.detail||'No fue posible guardar la configuración.');
+        message.textContent='Configuración aplicada a esta sesión.';await refreshHybridStatus();
+    }catch(error){message.textContent=String(error.message||error)}finally{button.disabled=false}
+});
 refreshHybridStatus();
 async function startProcessing(manual=false){
     const file=input.files[0];

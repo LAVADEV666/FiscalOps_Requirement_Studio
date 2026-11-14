@@ -34,6 +34,7 @@ from document_reconstruction import reconstruct_document
 from cross_validation import validate_cross_sources
 from fiscal_interpreter import interpret_document
 from mixed_region_ocr import run_mixed_region_ocr
+from ollama_provider import OllamaClient
 
 LOGGER = logging.getLogger("fiscalops.pipeline")
 
@@ -241,11 +242,12 @@ class ProcessingPipeline:
     y añade metadatos de página para trazabilidad.
     """
 
-    def __init__(self, work: Path, max_pages: int = 500, *, ocr_service: OCREngine | None = None) -> None:
+    def __init__(self, work: Path, max_pages: int = 500, *, ocr_service: OCREngine | None = None, ollama_client: OllamaClient | None = None) -> None:
         self.work = Path(work)
         self.max_pages = max_pages
         self.work.mkdir(parents=True, exist_ok=True)
         self._ocr_service = ocr_service
+        self._ollama_client = ollama_client
 
     @property
     def ocr_service(self) -> OCREngine:
@@ -383,7 +385,7 @@ class ProcessingPipeline:
             tick("cross_validation", 72, "Validando fuentes y campos críticos")
             cross_validation = validate_cross_sources(reconstruction, data)
             data["cross_validation"] = cross_validation
-            data["fiscal_interpretation"] = interpret_document(data, reconstruction, cross_validation)
+            data["fiscal_interpretation"] = interpret_document(data, reconstruction, cross_validation, client=self._ollama_client)
             data["processing_metrics"] = {
                 "duration_ms": round((time.perf_counter() - started) * 1000, 2),
                 "pages": inspection["total_pages"],

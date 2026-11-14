@@ -38,6 +38,8 @@ def reconstruct_document(pdf_path: str | Path, inspection: dict[str, Any], data:
     with fitz.open(str(pdf_path)) as document:
         for index, page in enumerate(document, 1):
             ocr_page = ocr_pages.get(index)
+            inspected_page = next((item for item in inspection.get("pages", []) if int(item.get("page", 0)) == index), {})
+            native_text = str(inspected_page.get("native_text", "") or "")
             if ocr_page and ocr_page.get("text_blocks"):
                 blocks = [{
                     "fragment_id": item.get("block_id") or f"OCR-P{index:03d}-B{position:03d}",
@@ -71,7 +73,8 @@ def reconstruct_document(pdf_path: str | Path, inspection: dict[str, Any], data:
                     })
             pages.append({
                 "page": index,
-                "page_type": next((x.get("page_type") for x in inspection.get("pages", []) if int(x.get("page", 0)) == index), "EMPTY_OR_UNREADABLE"),
+                "page_type": inspected_page.get("page_type", "EMPTY_OR_UNREADABLE"),
+                "native_text": native_text,
                 "text": text,
                 "blocks": blocks,
                 "supplemental_blocks": supplemental,

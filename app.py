@@ -1,5 +1,6 @@
 from __future__ import annotations
 import json, logging, shutil, uuid, os, signal, threading, time, tempfile, zipfile
+from dataclasses import replace
 from pathlib import Path
 from contextvars import ContextVar
 from typing import Any, Literal
@@ -36,7 +37,7 @@ from processing_pipeline import ProcessingPipeline
 from paddle_ocr_engine.human_review import CorrectionsStore
 from paddle_ocr_engine.numerals import detect_numerals, sequence_warnings
 from paddle_ocr_engine.corrector import OllamaCorrector
-from ollama_provider import OllamaClient
+from ollama_provider import OllamaClient, SUPPORTED_MODELS
 
 BASE=Path(__file__).resolve().parent; WORK=WORK_DIR; WORK.mkdir(parents=True,exist_ok=True)
 app=FastAPI(title='FiscalOps Requirement Studio',version=VERSION)
@@ -46,10 +47,10 @@ templates=TemplateStore(ENTERPRISE_DIR/'templates')
 ocr_service=OCREngine(WORK/'ocr_cache')
 jobs=JobManager(JOB_DIR)
 RECOVERED_JOBS=jobs.recover_interrupted()
-pipeline=ProcessingPipeline(WORK,MAX_PAGES,ocr_service=ocr_service)
 ocr_corrections=CorrectionsStore(CORRECTIONS_DIR)
 OllamaCorrector.configure_environment();ocr_corrector=OllamaCorrector()
 ollama_client=OllamaClient()
+pipeline=ProcessingPipeline(WORK,MAX_PAGES,ocr_service=ocr_service,ollama_client=ollama_client)
 app.mount('/static',StaticFiles(directory=BASE/'static'),name='static')
 action_revision:ContextVar[int|None]=ContextVar('action_revision',default=None)
 
@@ -72,6 +73,12 @@ async def no_cache(request:Request,call_next):
         )
     return response
 class Payload(BaseModel): job_id:str; data:dict[str,Any]
+class OllamaSettingsPayload(BaseModel):
+ enabled:bool|None=None
+ model:str|None=None
+ timeout_seconds:float|None=Field(default=None,gt=0,le=600)
+ block_size:int|None=Field(default=None,ge=1000,le=50000)
+ overlap:int|None=Field(default=None,ge=0,le=10000)
 class ExportPayload(Payload):
     mode:Literal['draft','reviewed']='draft'
     template_id:str|None=None
@@ -158,6 +165,22 @@ def home(): return FileResponse(BASE/'static/index.html')
 def health(): return {'status':'ok','version':VERSION,'edition':EDITION,'ai':ai_status(BASE),'ollama':{'enabled':ollama_client.config.enabled,'endpoint':ollama_client.config.base_url,'model':ollama_client.config.model,'local_only':True},'recovered_jobs':len(RECOVERED_JOBS)}
 @app.get('/api/ollama/status')
 def ollama_status(): return ollama_client.status()
+@app.get('/api/ollama/config')
+def ollama_config():
+ c=ollama_client.config
+ return {'enabled':c.enabled,'model':c.model,'endpoint':c.base_url,'timeout_seconds':c.timeout_seconds,'retries':c.retries,'block_size':c.block_size,'overlap':c.overlap,'supported_models':list(SUPPORTED_MODELS),'local_only':True}
+@app.put('/api/ollama/config')
+def update_ollama_config(payload:OllamaSettingsPayload):
+ current=ollama_client.config
+ values=payload.model_dump(exclude_none=True) if hasattr(payload,'model_dump') else payload.dict(exclude_none=True)
+ if 'model' in values and values['model'] not in SUPPORTED_MODELS:
+  raise HTTPException(422,f'Modelo no soportado. Seleccione uno de: {", ".join(SUPPORTED_MODELS)}')
+ candidate=replace(current,**values)
+ try:candidate.validate()
+ except ValueError as exc:raise HTTPException(422,str(exc)) from exc
+ ollama_client.config=candidate
+ pipeline._ollama_client=ollama_client
+ return {**ollama_config(), 'status':ollama_client.status()}
 @app.get('/audit')
 def audit_page(): return FileResponse(BASE/'static/audit.html')
 
@@ -184,37 +207,22 @@ async def process_async(file:UploadFile=File(...),manual_review:bool=Form(False)
 @app.post('/api/process')
 async def process(file:UploadFile=File(...)):
     if not(file.filename or '').lower().endswith('.pdf'): raise HTTPException(400,'Seleccione un PDF.')
-    jid=uuid.uuid4().hex; d=WORK/jid; d.mkdir(mode=0o700); pdf=d/'source.pdf'; size=0
+    upload_dir=Path(tempfile.mkdtemp(prefix='fiscalops-upload-',dir=str(WORK))); pdf=upload_dir/'source.pdf'; size=0
     with pdf.open('wb') as stream:
         while chunk:=await file.read(1048576):
             size+=len(chunk)
-            if size>MAX_PDF_MB*1024*1024: shutil.rmtree(d); raise HTTPException(413,f'Máximo {MAX_PDF_MB} MB.')
+            if size>MAX_PDF_MB*1024*1024: shutil.rmtree(upload_dir); raise HTTPException(413,f'Máximo {MAX_PDF_MB} MB.')
             stream.write(chunk)
-    if pdf.read_bytes()[:5]!=b'%PDF-': shutil.rmtree(d); raise HTTPException(400,'PDF inválido.')
+    if pdf.read_bytes()[:5]!=b'%PDF-': shutil.rmtree(upload_dir); raise HTTPException(400,'PDF inválido.')
     try:
-        native_tables={}
-        data=FiscalOpsNormalizer.normalize_workspace(extract(pdf,ocr_service,native_tables,recover_ocr=True))
-        if int(data.get('pages', 0)) > MAX_PAGES:
-            raise ValueError(f'El PDF excede el límite operativo de {MAX_PAGES} páginas.')
-        fragments=build_fragments(pdf,data['points'],data.get('ocr_diagnostics',{}).get('pages',[]))
-        for point in data['points']:
-            rid=f"REQ-{int(point['number']):03d}";point['requirement_id']=rid
-            point['fragment_ids']=[x['fragment_id'] for x in fragments if x['requirement_id']==rid]
-            point['status']='detected';point['version']=1;point['original_text']=point['text'];point['include']=True
-        data['fragments']=fragments
-        data['assets']=extract_visual_assets(pdf,d/'assets',data['points'],data.get('ocr_diagnostics',{}).get('pages',[]),native_tables)
-        ensure_document(data)
-        data['document_validation']=validate_document(data['document'],data)
-        ensure_matrix(data)
-        data['pages_manifest']=render_pages(pdf,d/'pages')
-        data['validation']=validate_integrity(data)
-        data['audit_log']=[audit_event('DOCUMENT_PROCESSED')]
-        save_json(d/'workspace.json',data);(d/'audit.jsonl').write_text(json.dumps(data['audit_log'][0],ensure_ascii=False)+'\n',encoding='utf-8')
-        return {'job_id':jid,'data':data}
+        result=pipeline.run(uuid.uuid4().hex,pdf,recover_ocr=True)
+        data=read_workspace(WORK/result['session_id'])
+        return {'job_id':result['job_id'],'data':data}
     except Exception as exc:
-        diagnostic={'error_type':type(exc).__name__,'message':str(exc)}
-        (d/'processing_error.json').write_text(json.dumps(diagnostic,ensure_ascii=False,indent=2),encoding='utf-8')
-        raise HTTPException(422,diagnostic)
+        raise HTTPException(422,{'error_type':type(exc).__name__,'message':str(exc)}) from exc
+    finally:
+        if upload_dir.exists() and upload_dir.parent.resolve()==WORK.resolve() and upload_dir.name.startswith('fiscalops-upload-'):
+            shutil.rmtree(upload_dir,ignore_errors=True)
 
 
 @app.get('/api/ai/status')

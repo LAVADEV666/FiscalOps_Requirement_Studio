@@ -24,6 +24,9 @@ PyMuPDF triage + Document Inspector (all pages)
 The old `core.extract` and `paddle_ocr_engine` remain the extraction source of
 truth. New modules add inspection, routing, provenance and validation around
 them; they do not install or invoke a second OCR implementation.
+Both upload contracts (`/api/process-async` and the legacy `/api/process`) now
+delegate to the same `ProcessingPipeline`, so the compatibility endpoint does
+not bypass inspection, reconstruction or validation.
 
 ## Data flow
 

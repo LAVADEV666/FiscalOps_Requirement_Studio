@@ -209,7 +209,7 @@ def inspect_pdf(pdf_path: str | Path) -> dict[str, Any]:
         "schema_version": INSPECTOR_VERSION,
         "total_pages": len(pages),
         "inspected_pages": len(pages),
-        "coverage": round(len(pages) / max(1, len(pages)), 4),
+        "coverage": round(len(pages) / max(1, expected_pages), 4),
         "classification_counts": counts,
         "pages": pages,
         "all_pages_inspected": len(pages) == expected_pages,

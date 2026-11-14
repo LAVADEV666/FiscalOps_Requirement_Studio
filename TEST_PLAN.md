@@ -8,6 +8,10 @@
 - CER/WER: exact-match behavior and reference-required policy.
 - Deterministic interpretation: page links and human-review requirement.
 - Ollama: loopback-only configuration, model discovery and local response shape.
+- Ollama settings API/UI: enable/disable and supported-model selection without
+  leaving loopback or changing the PDF source.
+- Legacy `/api/process` and asynchronous `/api/process-async`: both must use the
+  same hybrid `ProcessingPipeline`.
 - Existing regression suite: all previous tests must continue to pass.
 
 ## Corpus benchmark
