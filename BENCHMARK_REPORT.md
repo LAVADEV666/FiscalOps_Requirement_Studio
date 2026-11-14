@@ -23,6 +23,10 @@
   used after reconstruction and validation, with `qwen2.5:1.5b`, one analyzed
   block and **3.792 s** total processing time. The result remained marked for
   human review.
+- Reproducible benchmark runner with Ollama enabled: **1 verified synthetic
+  case**, Ollama stage `RUN`, one case analyzed, **2.514 s** model latency and
+  `promotable=true`. The OCR stage was correctly kept separate because the case
+  contained verified native text.
 - The legacy `/api/process` path and the asynchronous `/api/process-async`
   path now share `ProcessingPipeline`; the UI exposes local enable/disable and
   supported-model selection through `/api/ollama/config`.

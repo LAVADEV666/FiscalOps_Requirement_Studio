@@ -11,7 +11,7 @@
 | 6 | Cross-validation and quality metrics | DONE |
 | 7 | Fiscal interpretation after validation | DONE — deterministic first; Ollama optional and reviewed |
 | 8 | Compact API/UI status integration | DONE — status card, API endpoints, per-page traceability and native/OCR comparison are integrated |
-| 9 | Benchmark, regression and stabilization | PARTIAL — reproducible runner, regression suite and local model smoke test are complete; a validated fiscal reference manifest is still required |
+| 9 | Benchmark, regression and stabilization | PARTIAL — reproducible runner, regression suite and real local model execution are complete; a larger validated fiscal reference manifest is still required |
 
 ## Known boundaries
 
