@@ -4,7 +4,7 @@
 
 - Baseline regression before integration: **108 passed, 1 skipped**.
 - New hybrid unit tests plus pipeline/triage coverage: **12 passed**.
-- Full regression after integration: **112 passed, 1 skipped in 12.38s**.
+- Full regression after integration: **112 passed, 1 skipped in 12.18s**.
 - Reference-corpus CER/WER: **NOT TESTED** — no validated anonymized manifest
   was present in the repository.
 - 99% fidelity: **NOT DECLARED** because the specification requires measured

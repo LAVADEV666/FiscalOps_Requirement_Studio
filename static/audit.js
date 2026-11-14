@@ -40,7 +40,7 @@ async function init(){
     }catch(error){fatal(error)}
     finally{finishWorkspaceMotion()}
 }
-function normalize(){data.workspace_revision=data.workspace_revision||0;data.points=data.points||[];data.fragments=data.fragments||[];data.assets=data.assets||[];data.audit_log=data.audit_log||[];data.validation=data.validation||{alerts:[],metrics:{},completeness:0};data.metadata_validation=data.metadata_validation||{fields:{}};data.compliance_matrix=data.compliance_matrix||{schema_version:'fiscalops.compliance.v1',rows:[],metrics:{}};data.document=data.document||{schema_version:'fiscalops.document.v1',revision:1,sections:[]};for(const p of data.points){p.requirement_id=p.requirement_id||`REQ-${String(p.number).padStart(3,'0')}`;p.fragment_ids=p.fragment_ids||[];p.asset_ids=p.asset_ids||[];p.original_text=p.original_text||p.text;p.version=p.version||1;p.status=p.status||'detected'}}
+function normalize(){data.workspace_revision=data.workspace_revision||0;data.points=data.points||[];data.fragments=data.fragments||[];data.assets=data.assets||[];data.audit_log=data.audit_log||[];data.validation=data.validation||{alerts:[],metrics:{},completeness:0};data.metadata_validation=data.metadata_validation||{fields:{}};data.compliance_matrix=data.compliance_matrix||{schema_version:'fiscalops.compliance.v1',rows:[],metrics:{}};data.document=data.document||{schema_version:'fiscalops.document.v1',revision:1,sections:[]};data.document_inspection=data.document_inspection||{pages:[],classification_counts:{}};data.ocr_decisions=data.ocr_decisions||{pages:[],summary:{}};data.reconstruction=data.reconstruction||{pages:[],text:''};data.cross_validation=data.cross_validation||{metrics:{},discrepancies:[],critical_fields:{}};data.fiscal_interpretation=data.fiscal_interpretation||{};for(const p of data.points){p.requirement_id=p.requirement_id||`REQ-${String(p.number).padStart(3,'0')}`;p.fragment_ids=p.fragment_ids||[];p.asset_ids=p.asset_ids||[];p.original_text=p.original_text||p.text;p.version=p.version||1;p.status=p.status||'detected'}}
 
 function syncPaneControls() {
     const split = $('#split');
@@ -142,7 +142,7 @@ function renderAll() {
     $('#caseTitle').textContent=metadata.taxpayer_name?.valid?metadata.taxpayer_name.value:'Expediente fiscal';
     window.CompanyIdentity.mount($('#caseCompanyIdentity'),expedientRfc(),{registeredOnly:true});
     $('#caseDetail').textContent=`${data.pages} ${data.pages===1?'página':'páginas'} · ${data.points.length} ${data.points.length===1?'numeral':'numerales'}`;
-    renderRequirements();renderVisuals();
+    renderRequirements();renderVisuals();renderHybrid();
     if(!$('#previewTab').classList.contains('hidden'))renderPreview();
     renderMetadata();
 }
@@ -165,6 +165,7 @@ function activateTab(name) {
     document.querySelectorAll('.tab').forEach(t=>t.classList.toggle('hidden',t!==target));
     if(name==='preview')renderPreview();
     if(name==='requirements')renderRequirements();
+    if(name==='hybrid')renderHybrid();
     if(name==='templates')setupTemplateLibrary(target,expedientRfc());
     $('#editorScroll').scrollTop=0;
 }
@@ -226,6 +227,15 @@ function renderVisuals() {
     target.querySelectorAll('[data-page]').forEach(button=>button.onclick=()=>showSourcePage(Number(button.dataset.page)));
 }
 function asset(id){return data.assets.find(a=>a.asset_id===id)}function setAllAssets(include){snapshot();data.assets.forEach(a=>a.include=include);markDirty();renderVisuals();renderPreview()}
+
+function renderHybrid(){
+    const target=$('#hybridTab');if(!target)return;
+    const inspection=data.document_inspection||{}, decisions=data.ocr_decisions||{}, validation=data.cross_validation||{}, interpretation=data.fiscal_interpretation||{};
+    const counts=inspection.classification_counts||{}, summary=decisions.summary||{}, metrics=validation.metrics||{};
+    const decisionByPage=new Map((decisions.pages||[]).map(item=>[Number(item.page),item]));
+    const pages=inspection.pages||[];
+    target.innerHTML=`<div class="hybrid-report"><div class="data-hero"><span class="eyebrow">TRAZABILIDAD · DOCUMENT INTELLIGENCE</span><h3>Inspección y validación del documento</h3><p>La lectura conserva el original y separa evidencia nativa, PaddleOCR, reintentos y revisión humana.</p></div><div class="hybrid-report-grid"><div><b>${inspection.inspected_pages||0}/${inspection.total_pages||0}</b><span>Páginas inspeccionadas</span></div><div><b>${summary.full_page_ocr||0}</b><span>Páginas OCR completo</span></div><div><b>${summary.mixed_regions||0}</b><span>Páginas mixtas / regiones</span></div><div><b>${metrics.discrepancy_count||0}</b><span>Incidencias</span></div><div><b>${metrics.critical_fields_validated||0}%</b><span>Campos críticos validados</span></div><div><b>${metrics.reference_available?'Medido':'No declarado'}</b><span>Fidelidad</span></div></div><div class="hybrid-report-note">Ollama: ${esc(interpretation.ollama?.used?interpretation.ollama.model:'no utilizado')} · ${esc(interpretation.ollama?.reason||'interpretación determinista revisable')}</div><div class="hybrid-page-list">${pages.map(item=>{const decision=decisionByPage.get(Number(item.page))||{};return `<div class="hybrid-page-row"><b>Página ${item.page}</b><span>${esc(item.page_type||'—')}</span><span>${esc(decision.action||'—')}</span><span>${Math.round(Number(item.quality_score||0)*100)}% calidad</span><small>${esc((decision.source_priority||[]).join(' · '))}${decision.human_review_required?' · Revisión humana':''}</small></div>`}).join('')||'<div class="empty">No hay inspección guardada para este expediente.</div>'}</div></div>`;
+}
 
 function renderMetadata() {
     const fields=data.metadata_validation.fields||{};
