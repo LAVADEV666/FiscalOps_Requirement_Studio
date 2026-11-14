@@ -10,8 +10,8 @@
 - Verified native benchmark pilot: **1 case measured, CER 0, WER 0**. PaddleOCR
   was correctly reported as `NOT_RUN` because the case required native text only.
 - Real local scanned pilot (synthetic verified reference): **1 case measured**,
-  page coverage **100%**, CER **0.025253**, WER **0.296296**, latency **47.4415
-  s/page**, peak traced memory **275,819,850 bytes**. Route:
+  page coverage **100%**, CER **0.057143**, WER **0.193548**, latency **45.3015
+  s/page**, peak traced memory **277,521,470 bytes**. Route:
   `SCANNED_IMAGE → PADDLEOCR_FULL_PAGE`.
 - Ollama provider verification: **server available locally** at
   `http://localhost:11434`; `qwen2.5:1.5b` was downloaded and detected as an
@@ -30,13 +30,13 @@
 - Controlled synthetic corpus generated locally: **43 verified pages** (10
   digital, 10 scanned-good, 10 scanned-regular, 10 scanned-bad, one mixed and
   two multipage references). Real PaddleOCR execution covered all pages with
-  **100% page coverage**, CER **0.229008**, WER **0.182414**, **3.239 s/case**
-  and **277,404,490 bytes** peak traced memory. The mixed case used route
-  `NATIVE_PLUS_REGIONS`, mode `mixed_regions`, CER **0.235669**. Category CER
-  was digital **0.000000**, scanned-good **0.633878**, scanned-regular
-  **0.066129** and scanned-bad **0.249590**. The corrected 99% quality gates
-  returned `promotable=false`; no fidelity claim is made for this synthetic
-  corpus.
+  **100% page coverage**, CER **0.038446**, WER **0.182414**, **3.590 s/case**
+  and **277,521,470 bytes** peak traced memory. The mixed case used route
+  `NATIVE_PLUS_REGIONS`, mode `mixed_regions`, CER **0.229299**. Category CER
+  was digital **0.000000**, scanned-good **0.055918**, scanned-regular
+  **0.031048** and scanned-bad **0.043853**. The corrected 99% quality gates
+  returned `promotable=false` because CER and WER remain above 1%; no fidelity
+  claim is made for this synthetic corpus.
 - The legacy `/api/process` path and the asynchronous `/api/process-async`
   path now share `ProcessingPipeline`; the UI exposes local enable/disable and
   supported-model selection through `/api/ollama/config`.

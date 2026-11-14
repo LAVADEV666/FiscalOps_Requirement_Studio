@@ -2,7 +2,6 @@
 from __future__ import annotations
 
 import re
-from difflib import SequenceMatcher
 from typing import Any
 
 
@@ -25,9 +24,17 @@ def cer(reference: str, hypothesis: str) -> float:
     a, b = _compact(reference), _compact(hypothesis)
     if not a:
         return 0.0 if not b else 1.0
-    matcher = SequenceMatcher(None, a, b)
-    distance = len(a) + len(b) - 2 * sum(block.size for block in matcher.get_matching_blocks())
-    return round(distance / len(a), 6)
+    previous = list(range(len(b) + 1))
+    for index, character in enumerate(a, 1):
+        current = [index]
+        for other_index, other in enumerate(b, 1):
+            current.append(min(
+                current[-1] + 1,
+                previous[other_index] + 1,
+                previous[other_index - 1] + (character != other),
+            ))
+        previous = current
+    return round(previous[-1] / len(a), 6)
 
 
 def wer(reference: str, hypothesis: str) -> float:
