@@ -36,6 +36,7 @@ from processing_pipeline import ProcessingPipeline
 from paddle_ocr_engine.human_review import CorrectionsStore
 from paddle_ocr_engine.numerals import detect_numerals, sequence_warnings
 from paddle_ocr_engine.corrector import OllamaCorrector
+from ollama_provider import OllamaClient
 
 BASE=Path(__file__).resolve().parent; WORK=WORK_DIR; WORK.mkdir(parents=True,exist_ok=True)
 app=FastAPI(title='FiscalOps Requirement Studio',version=VERSION)
@@ -48,6 +49,7 @@ RECOVERED_JOBS=jobs.recover_interrupted()
 pipeline=ProcessingPipeline(WORK,MAX_PAGES,ocr_service=ocr_service)
 ocr_corrections=CorrectionsStore(CORRECTIONS_DIR)
 OllamaCorrector.configure_environment();ocr_corrector=OllamaCorrector()
+ollama_client=OllamaClient()
 app.mount('/static',StaticFiles(directory=BASE/'static'),name='static')
 action_revision:ContextVar[int|None]=ContextVar('action_revision',default=None)
 
@@ -153,7 +155,9 @@ def commit_action(folder:Path,data:dict):
 @app.get('/')
 def home(): return FileResponse(BASE/'static/index.html')
 @app.get('/api/health')
-def health(): return {'status':'ok','version':VERSION,'edition':EDITION,'ai':ai_status(BASE),'recovered_jobs':len(RECOVERED_JOBS)}
+def health(): return {'status':'ok','version':VERSION,'edition':EDITION,'ai':ai_status(BASE),'ollama':{'enabled':ollama_client.config.enabled,'endpoint':ollama_client.config.base_url,'model':ollama_client.config.model,'local_only':True},'recovered_jobs':len(RECOVERED_JOBS)}
+@app.get('/api/ollama/status')
+def ollama_status(): return ollama_client.status()
 @app.get('/audit')
 def audit_page(): return FileResponse(BASE/'static/audit.html')
 
@@ -232,6 +236,10 @@ def ai_analyze(job_id:str):
 @app.get('/api/workspace/{job_id}')
 def workspace(job_id:str):
     data=read_workspace(job_dir(job_id));ensure_document(data);data.setdefault('workspace_revision',0);return data
+@app.get('/api/hybrid/{job_id}')
+def hybrid_status(job_id:str):
+    data=read_workspace(job_dir(job_id))
+    return {'inspection':data.get('document_inspection',{}),'ocr_decisions':data.get('ocr_decisions',{}),'reconstruction':data.get('reconstruction',{}),'cross_validation':data.get('cross_validation',{}),'fiscal_interpretation':data.get('fiscal_interpretation',{})}
 @app.get('/api/pdf/{job_id}')
 def pdf(job_id:str): return FileResponse(job_dir(job_id)/'source.pdf',media_type='application/pdf')
 @app.get('/api/page/{job_id}/{page}')

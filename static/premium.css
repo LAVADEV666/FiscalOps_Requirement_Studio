@@ -95,6 +95,16 @@ h1,h2,h3,p { overflow-wrap:anywhere }
 .settings-card p { color:var(--muted); font-size:.85rem; margin:9px 0 }
 .settings-card label { display:grid; gap:5px; font-size:.85rem }
 .settings-card pre { white-space:pre-wrap; word-break:break-word; font-size:.78rem; max-height:200px; overflow:auto }
+.hybrid-settings-card { background:linear-gradient(145deg,#fff 0%,#faf6fd 100%); border-color:#d8c9e1 }
+.hybrid-status { display:flex; align-items:center; gap:8px; min-height:30px; color:var(--muted); font-size:.82rem }
+.hybrid-status::before { content:''; width:8px; height:8px; border-radius:50%; background:#8d8196; flex:none }
+.hybrid-status[data-state="ready"]::before { background:#16845b }
+.hybrid-status[data-state="warn"]::before { background:#b56c18 }
+.hybrid-metrics { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:8px; margin:10px 0; }
+.hybrid-metrics div { padding:9px; border:1px solid var(--line); border-radius:9px; background:#fff }
+.hybrid-metrics dt { color:var(--muted); font-size:.72rem }
+.hybrid-metrics dd { margin:3px 0 0; color:var(--brand-deep); font-size:.82rem; font-weight:700; overflow-wrap:anywhere }
+.hybrid-settings-card code { font-size:.75rem }
 .maintenance-controls { display:flex; align-items:end; gap:8px; flex-wrap:wrap }
 .maintenance-controls input { width:120px }
 .cleanup-list { max-height:220px; overflow:auto; margin:12px 0 }

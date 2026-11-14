@@ -27,6 +27,11 @@ from document_model import ensure_document, validate_document
 from compliance_engine import ensure_matrix
 from persistence import atomic_json
 from ocr_engine import OCREngine
+from document_inspector import inspect_pdf
+from ocr_decision_engine import decide_document
+from document_reconstruction import reconstruct_document
+from cross_validation import validate_cross_sources
+from fiscal_interpreter import interpret_document
 
 LOGGER = logging.getLogger("fiscalops.pipeline")
 
@@ -299,6 +304,17 @@ class ProcessingPipeline:
                 json.dumps(triage, ensure_ascii=False, indent=2), encoding="utf-8",
             )
 
+            # ── Paso 2b: inspección completa y decisión OCR ─────────────
+            tick("inspection", 15, "Inspeccionando todas las páginas")
+            inspection = inspect_pdf(pdf)
+            decisions = decide_document(inspection)
+            (d / "document_inspection.json").write_text(
+                json.dumps(inspection, ensure_ascii=False, indent=2), encoding="utf-8",
+            )
+            (d / "ocr_decisions.json").write_text(
+                json.dumps(decisions, ensure_ascii=False, indent=2), encoding="utf-8",
+            )
+
             # ── Paso 3: Verificar disponibilidad de OCR para páginas escaneadas ──
             if not recover_ocr and triage["scan_pages"] > 0 and not self.ocr_service.is_usable():
                 raise ValueError(
@@ -313,6 +329,13 @@ class ProcessingPipeline:
             data = FiscalOpsNormalizer.normalize_workspace(extract(
                 pdf, self.ocr_service, native_tables, recover_ocr=recover_ocr, allow_manual=allow_manual))
             data["triage"] = triage
+            data["document_inspection"] = inspection
+            data["ocr_decisions"] = decisions
+
+            # ── Paso 4b: reconstrucción canónica con trazabilidad ─────────
+            tick("reconstructing", 30, "Reconstruyendo el documento por página")
+            reconstruction = reconstruct_document(pdf, inspection, data)
+            data["reconstruction"] = reconstruction
 
             # ── Paso 5: Segmentación de numerales ─────────────────────────
             tick("segmenting", 36, "Delimitando numerales")
@@ -340,6 +363,12 @@ class ProcessingPipeline:
             ensure_document(data)
             data["document_validation"] = validate_document(data["document"], data)
             ensure_matrix(data)
+
+            # ── Paso 7b: validación cruzada e interpretación posterior ─────
+            tick("cross_validation", 72, "Validando fuentes y campos críticos")
+            cross_validation = validate_cross_sources(reconstruction, data)
+            data["cross_validation"] = cross_validation
+            data["fiscal_interpretation"] = interpret_document(data, reconstruction, cross_validation)
 
             # ── Paso 8: Renderizado de páginas (imágenes) ─────────────────
             tick("rendering", 80, "Renderizando páginas")
@@ -370,6 +399,12 @@ class ProcessingPipeline:
                     "native_pages": triage["native_pages"],
                     "scan_pages": triage["scan_pages"],
                 },
+                "inspection": {
+                    "total_pages": inspection["total_pages"],
+                    "classification_counts": inspection["classification_counts"],
+                    "coverage": inspection["coverage"],
+                },
+                "ocr_decisions": decisions["summary"],
             }
 
         except Exception:

@@ -26,3 +26,13 @@ ENTERPRISE_DIR = DATA_ROOT / "data"
 CORRECTIONS_DIR = DATA_ROOT / "corrections_store"
 
 JOB_DIR = WORK_DIR / "jobs"
+
+# Local-only hybrid document intelligence.  Disabled by default so the
+# existing deterministic/PaddleOCR flow remains the safe compatibility path.
+OLLAMA_ENABLED = os.environ.get("FISCALOPS_OLLAMA_ENABLED", "0").strip().lower() in {"1", "true", "yes", "on"}
+OLLAMA_URL = os.environ.get("FISCALOPS_OLLAMA_URL", "http://localhost:11434")
+OLLAMA_MODEL = os.environ.get("FISCALOPS_OLLAMA_MODEL", "qwen2.5:3b")
+OLLAMA_TIMEOUT = float(os.environ.get("FISCALOPS_OLLAMA_TIMEOUT", "120"))
+OLLAMA_RETRIES = max(0, int(os.environ.get("FISCALOPS_OLLAMA_RETRIES", "1")))
+OLLAMA_BLOCK_SIZE = max(1000, int(os.environ.get("FISCALOPS_OLLAMA_BLOCK_SIZE", "12000")))
+OLLAMA_OVERLAP = max(0, int(os.environ.get("FISCALOPS_OLLAMA_OVERLAP", "800")))

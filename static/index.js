@@ -22,6 +22,21 @@ function setProcessing(value){
         $('#jobHeadline').textContent='Preparando el PDF';
     }
 }
+async function refreshHybridStatus(){
+    const box=$('#hybridStatus'),state=$('#ollamaState'),model=$('#ollamaModel');
+    if(!box||!state||!model)return;
+    try{
+        const response=await fetch('/api/ollama/status',{cache:'no-store'}),result=await response.json();
+        const ready=Boolean(result.available&&result.model_available);
+        box.dataset.state=ready?'ready':'warn';
+        box.querySelector('span').textContent=ready?'Ollama disponible · IA local lista':(result.enabled?'Ollama activado · modelo no disponible':'Ollama desactivado · flujo determinista disponible');
+        state.textContent=ready?'Disponible':(result.enabled?'Revisar':'Desactivado');
+        model.textContent=result.model||'—';
+    }catch(error){
+        box.dataset.state='warn';box.querySelector('span').textContent='No se pudo consultar Ollama · el flujo local continúa';state.textContent='No disponible';model.textContent='—';
+    }
+}
+refreshHybridStatus();
 async function startProcessing(manual=false){
     const file=input.files[0];
     if(!file||processing)return;
